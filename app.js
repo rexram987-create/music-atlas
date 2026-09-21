@@ -21,4 +21,20 @@ async function show(item){$('results').replaceChildren();const detail=$('detail'
 $('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=$('searchInput').value.trim();if(q.length>=2)search(q)});
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;document.querySelectorAll('.tab').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});paint()}));
 (async()=>{try{state.items=await loadEntities(seeds.map(x=>x[0]));for(let i=0;i<state.items.length;i++){const seed=seeds.find(s=>s[0]===state.items[i].id);if(seed){state.items[i].type=seed[2];if(!state.items[i].title||state.items[i].title.startsWith('Q'))state.items[i].title=seed[1]}}setStatus('בחר אמן לדוגמה או חפש שם חדש.');paint()}catch(e){console.error(e);setStatus('אפשר לחפש שם אמן גם אם רשימת הדוגמאות לא נטענה.')}})();
-let promptInstall;window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();promptInstall=e;$('install').classList.remove('hidden')});$('install').addEventListener('click',async()=>{if(!promptInstall)return;promptInstall.prompt();await promptInstall.userChoice;promptInstall=null;$('install').classList.add('hidden')});window.addEventListener('appinstalled',()=>{$('install').classList.add('hidden')});if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.error));
+let promptInstall=null;
+const installButton=$('install');
+const installHelp=$('installHelp');
+const installMessage=$('installMessage');
+function isStandalone(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
+function refreshInstallUI(){installButton.classList.toggle('hidden',isStandalone());installHelp.classList.toggle('hidden',isStandalone());installButton.textContent=promptInstall?'⬇ התקנת היישומון':'⬇ התקנה / הוראות התקנה'}
+function showInstallHelp(message){installMessage.textContent=message;installHelp.classList.remove('hidden');installHelp.scrollIntoView({behavior:'smooth',block:'nearest'})}
+window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();promptInstall=event;refreshInstallUI()});
+installButton.addEventListener('click',async()=>{
+  if(isStandalone()){return}
+  if(promptInstall){const event=promptInstall;promptInstall=null;event.prompt();try{const choice=await event.userChoice;if(choice?.outcome==='dismissed')showInstallHelp('אפשר להתקין גם דרך תפריט Chrome ⋮ ← התקנת אפליקציה / הוספה למסך הבית.')}catch{showInstallHelp('פתח את תפריט Chrome ⋮ ובחר התקנת אפליקציה או הוספה למסך הבית.')}refreshInstallUI();return}
+  showInstallHelp('באנדרואיד: פתח את האתר ישירות ב־Chrome (לא בדפדפן הפנימי של ChatGPT או אפליקציה אחרת), לחץ ⋮ ובחר ״התקנת אפליקציה״ או ״הוספה למסך הבית״. אם הוא כבר מותקן, פתח אותו ממסך הבית. אם Chrome אינו מציע התקנה, נסה רענון או סגירה ופתיחה של הכרטיסייה.')
+});
+window.addEventListener('appinstalled',()=>{promptInstall=null;installHelp.classList.add('hidden');refreshInstallUI()});
+window.matchMedia('(display-mode: standalone)').addEventListener?.('change',refreshInstallUI);
+refreshInstallUI();
+if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.error));
