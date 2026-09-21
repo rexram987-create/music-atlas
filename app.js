@@ -26,15 +26,15 @@ const installButton=$('install');
 const installHelp=$('installHelp');
 const installMessage=$('installMessage');
 function isStandalone(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
-function refreshInstallUI(){installButton.classList.toggle('hidden',isStandalone());installHelp.classList.toggle('hidden',isStandalone());installButton.textContent=promptInstall?'⬇ התקנת היישומון':'⬇ התקנה / הוראות התקנה'}
+function refreshInstallUI(){installButton.classList.remove('hidden');installButton.textContent=isStandalone()?'✓ היישומון מותקן':promptInstall?'⬇ התקנת היישומון':'⬇ התקנה / הוראות התקנה'}
 function showInstallHelp(message){installMessage.textContent=message;installHelp.classList.remove('hidden');installHelp.scrollIntoView({behavior:'smooth',block:'nearest'})}
 window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();promptInstall=event;refreshInstallUI()});
 installButton.addEventListener('click',async()=>{
-  if(isStandalone()){return}
+  if(isStandalone()){showInstallHelp('Music Atlas כבר פועל במצב יישומון מותקן. ניתן למצוא אותו במסך הבית או ברשימת האפליקציות.');return}
   if(promptInstall){const event=promptInstall;promptInstall=null;event.prompt();try{const choice=await event.userChoice;if(choice?.outcome==='dismissed')showInstallHelp('אפשר להתקין גם דרך תפריט Chrome ⋮ ← התקנת אפליקציה / הוספה למסך הבית.')}catch{showInstallHelp('פתח את תפריט Chrome ⋮ ובחר התקנת אפליקציה או הוספה למסך הבית.')}refreshInstallUI();return}
   showInstallHelp('באנדרואיד: פתח את האתר ישירות ב־Chrome (לא בדפדפן הפנימי של ChatGPT או אפליקציה אחרת), לחץ ⋮ ובחר ״התקנת אפליקציה״ או ״הוספה למסך הבית״. אם הוא כבר מותקן, פתח אותו ממסך הבית. אם Chrome אינו מציע התקנה, נסה רענון או סגירה ופתיחה של הכרטיסייה.')
 });
-window.addEventListener('appinstalled',()=>{promptInstall=null;installHelp.classList.add('hidden');refreshInstallUI()});
+window.addEventListener('appinstalled',()=>{promptInstall=null;showInstallHelp('ההתקנה הושלמה! חפש את Music Atlas במסך הבית או ברשימת האפליקציות.');refreshInstallUI()});
 window.matchMedia('(display-mode: standalone)').addEventListener?.('change',refreshInstallUI);
 refreshInstallUI();
 if('serviceWorker'in navigator)window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(console.error));
