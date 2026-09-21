@@ -1,0 +1,36 @@
+name: Generate PWA PNG icons
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/generate-pwa-icons.yml'
+      - 'icon.svg'
+permissions:
+  contents: write
+jobs:
+  icons:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install SVG converter
+        run: python -m pip install cairosvg
+      - name: Generate standard and maskable PNG icons
+        run: |
+          python - <<'PY'
+          import cairosvg
+          for size in (192, 512):
+              cairosvg.svg2png(url='icon.svg', write_to=f'icon-{size}.png', output_width=size, output_height=size)
+          PY
+      - name: Commit icons
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add icon-192.png icon-512.png
+          if ! git diff --cached --quiet; then
+            git commit -m "Add PNG icons for PWA installation"
+            git push
+          fi
