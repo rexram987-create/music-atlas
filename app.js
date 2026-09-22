@@ -20,12 +20,22 @@ const nameStories={
   Q303:{text:'אלביס נקרא על שם אביו, ורנון אלביס פרסלי, שאלביס היה שמו האמצעי. שמו האמצעי של הזמר נכתב במסמכים מוקדמים גם Aron, בעוד שבאתר גרייסלנד שמו מוצג Elvis Aaron Presley. זהו הסבר לבחירת השם במשפחה, ולא קביעה על משמעותו הלשונית הקדומה.',source:'דברי ורנון פרסלי בריאיון משנת 1978; ביוגרפיה רשמית של גרייסלנד',url:'https://www.graceland.com/biography'},
 
   Q215359:{text:'דין מרטין נולד בשם Dino Paul Crocetti. בתחילת הקריירה הופיע בשם Dino Martini, ובהמשך אימץ את שם הבמה Dean Martin. הסיפור ההיסטורי של בחירת שם הבמה נפרד מהמשמעות הלשונית של המילים Dean ו־Martin.',source:'AllMusic — Dean Martin Biography',url:'https://www.allmusic.com/artist/dean-martin-mn0000813392'},
+    Q5383:{text:'דייוויד בואי נולד בשם David Robert Jones. בשנת 1965 אימץ את שם הבמה David Bowie, בין היתר כדי להבדיל את עצמו מאמנים אחרים שנקראו דייוויד ג׳ונס. לדבריו, שם המשפחה Bowie נבחר בהשראת סכין הבואי (Bowie knife).',source:'האתר הרשמי של דייוויד בואי — Happy 50th Birthday David Bowie',url:'https://www.davidbowie.com/2015/2015/09/16/happy-50th-birthday-david-bowie'},
+  Q19848:{text:'ליידי גאגא נולדה בשם Stefani Joanne Angelina Germanotta. שם הבמה Gaga קשור לשיר Radio Ga Ga של להקת Queen. בראיונות סיפרה שהמפיק רוב פוסארי נהג לכנות אותה Gaga; את הצירוף Lady Gaga בחרה כשביקשה זהות בימתית חדשה. יש גרסאות שונות לפרטים המדויקים של היווצרות הכינוי.',source:'Dictionary.com — Origin Stories Behind Musicians’ Names',url:'https://www.dictionary.com/articles/origin-stories-behind-musicians-names'},
     Q1299:{text:'The Beatles הוא משחק מילים בין beetles (חיפושיות) לבין beat (קצב מוזיקלי). ג׳ון לנון וסטיוארט סאטקליף נקשרים לבחירת השם; הלהקה השתמשה גם בשם The Silver Beetles בתחילת דרכה.',source:'The Beatles Story — How did The Beatles get their name?',url:'https://www.beatlesstory.com/blog/the-beatles-name/'},
   Q15862:{text:'Queen פירושו באנגלית ״מלכה״. פרדי מרקיורי הציע את השם במקום Smile; לדבריו, הוא ביקש שם שמשדר מלכותיות והדר.',source:'Freddie Mercury — Official Biography',url:'https://freddiemercury.com/bio/'}
 };
 // Etymology is linked to a verified artist ID: never infer name meanings from arbitrary search results.
 const verifiedNameMeanings={
-  Q215359:[
+  Q5383:[
+    {label:'David — דייוויד',text:'דָּוִד הוא שם עברי, שמקובל לפרשו ״אהוב״ או ״ידיד״. זהו שמו הפרטי של בואי גם מלידה, לא שם במה שהומצא עבורו.',source:'Behind the Name — David',url:'https://www.behindthename.com/name/david'},
+    {label:'Bowie — בואי',text:'בשם הבמה של הזמר, Bowie מתייחס לסכין הבואי, שנקראה על שם ג׳ים בואי. אין לפרש את Bowie אוטומטית כמשמעות של שם משפחה תורשתי במקרה שלו.',source:'האתר הרשמי של דייוויד בואי',url:'https://www.davidbowie.com/2015/2015/09/16/happy-50th-birthday-david-bowie'}
+  ],
+  Q19848:[
+    {label:'Lady — ליידי',text:'באנגלית Lady היא צורת פנייה לאישה, ובין היתר תואר אצולה או כינוי לגברת. כאן זהו חלק משם במה.',source:'Cambridge Dictionary — lady',url:'https://dictionary.cambridge.org/dictionary/english/lady'},
+    {label:'Gaga — גאגא',text:'בהקשר של שם הבמה, Gaga לקוח מכותרת השיר Radio Ga Ga של Queen. אין להסיק שהזמרת בחרה בו בגלל משמעות מילונית אחרת של המילה.',source:'Dictionary.com — Origin Stories Behind Musicians’ Names',url:'https://www.dictionary.com/articles/origin-stories-behind-musicians-names'}
+  ],
+    Q215359:[
     {label:'Dean — דין',text:'לשם Dean יש כמה מקורות אפשריים באנגלית: denu באנגלית עתיקה פירושו ״עמק״; והמילה dean כתואר היא ״דיקן״, במקור מן הלטינית decanus — ממונה על עשרה. אין בכך קביעה מדוע נבחר דווקא השם כשם הבמה.',source:'FamilySearch — Dean surname; Online Etymology Dictionary — dean',url:'https://www.familysearch.org/en/surname?surname=dean'},
     {label:'Martin — מרטין',text:'מקור השם בלטינית Martinus, שנגזר משמו של מארס, אל המלחמה הרומי. מקובל להסבירו כ״שייך למארס״ או ״של מארס״. כאן זהו רכיב בשם הבמה, ולא שם משפחתו המקורי של הזמר.',source:'Behind the Name — Martin',url:'https://www.behindthename.com/name/martin'}
   ]
