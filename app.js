@@ -93,7 +93,7 @@ async function multilingualDictionaryLookup(word,lang){
 }
 function originalLanguageSection(item){
   const choices=[];
-  if(item.id==='Q1631'||/[À-ÿ]/.test(item.frenchTitle||'')){
+  if(item.id==='Q1631'){
     for(const word of (item.frenchTitle||'').split(/\s+/).filter(Boolean).slice(0,3))choices.push({word,lang:'fr'});
   }
   const arabic=(item.arabicTitle||'').trim();
