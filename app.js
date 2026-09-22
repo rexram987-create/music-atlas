@@ -121,7 +121,7 @@ async function search(q){if(state.controller)state.controller.abort();state.cont
   'דין מרטין':'Dean Martin',
   'ליידי גאגא':'Lady Gaga'
 };
-const canonical=s=>normalize(s).replace(/[׳'‘’`״"\u200e\u200f]/g,'').replace(/\\s+/g,' ');
+const canonical=s=>normalize(s).replace(/[׳'‘’`״"\u200e\u200f]/g,'').replace(/\s+/g,' ');
 const alias=aliases[canonical(q)]||null;
 const variants=[q];
 if(alias)variants.push(alias);
