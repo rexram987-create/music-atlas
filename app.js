@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null};
-const seeds=[['Q254','מוצרט','composer'],['Q303','אלביס פרסלי','singer'],['Q1299','הביטלס','band'],['Q255','בטהובן','composer'],['Q45945','אריק איינשטיין','singer'],['Q1779','קווין','band']];
+const seeds=[['Q254','מוצרט','composer'],['Q303','אלביס פרסלי','singer'],['Q1299','הביטלס','band'],['Q255','בטהובן','composer'],['Q45945','אריק איינשטיין','singer'],['Q15862','קווין','band']];
 const typeLabels={singer:'זמר/ת',band:'להקה',composer:'מלחין/ה',all:'אמן/ית'};
 const normalize=s=>(s||'').toLocaleLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim();
 const setStatus=message=>{$('status').textContent=message};
@@ -17,7 +17,7 @@ function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.label
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
   Q1299:{text:'The Beatles הוא משחק מילים בין beetles (חיפושיות) לבין beat (קצב מוזיקלי). ג׳ון לנון וסטיוארט סאטקליף נקשרים לבחירת השם; הלהקה השתמשה גם בשם The Silver Beetles בתחילת דרכה.',source:'The Beatles Story — How did The Beatles get their name?',url:'https://www.beatlesstory.com/blog/the-beatles-name/'},
-  Q1779:{text:'Queen פירושו באנגלית ״מלכה״. פרדי מרקיורי הציע את השם במקום Smile; לדבריו, הוא ביקש שם שמשדר מלכותיות והדר.',source:'Freddie Mercury — Official Biography',url:'https://freddiemercury.com/bio/'}
+  Q15862:{text:'Queen פירושו באנגלית ״מלכה״. פרדי מרקיורי הציע את השם במקום Smile; לדבריו, הוא ביקש שם שמשדר מלכותיות והדר.',source:'Freddie Mercury — Official Biography',url:'https://freddiemercury.com/bio/'}
 };
 function claimText(entity,key){return (entity?.claims?.[key]||[]).map(c=>c.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim()).filter((v,i,a)=>a.indexOf(v)===i)}
 function nameSection(item){
