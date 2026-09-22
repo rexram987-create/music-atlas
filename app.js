@@ -16,6 +16,9 @@ function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.label
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
+  Q254:{text:'מוצרט הוטבל בשם Johannes Chrysostomus Wolfgang Theophilus. הוא השתמש גם בצורה Wolfgang Amadé Mozart. השם Theophilus ביוונית פירושו ״אוהב האל״ או ״אהוב האל״; Amadé היא צורה מקבילה מן הלטינית, ולא שם משפחה נוסף.',source:'קרן מוצרטאום הבינלאומית — ביוגרפיית מוצרט',url:'https://mozarteum.at/en/wolfgang-amade-mozart'},
+  Q303:{text:'אלביס נקרא על שם אביו, ורנון אלביס פרסלי, שאלביס היה שמו האמצעי. שמו האמצעי של הזמר נכתב במסמכים מוקדמים גם Aron, בעוד שבאתר גרייסלנד שמו מוצג Elvis Aaron Presley. זהו הסבר לבחירת השם במשפחה, ולא קביעה על משמעותו הלשונית הקדומה.',source:'דברי ורנון פרסלי בריאיון משנת 1978; ביוגרפיה רשמית של גרייסלנד',url:'https://www.graceland.com/biography'},
+
   Q1299:{text:'The Beatles הוא משחק מילים בין beetles (חיפושיות) לבין beat (קצב מוזיקלי). ג׳ון לנון וסטיוארט סאטקליף נקשרים לבחירת השם; הלהקה השתמשה גם בשם The Silver Beetles בתחילת דרכה.',source:'The Beatles Story — How did The Beatles get their name?',url:'https://www.beatlesstory.com/blog/the-beatles-name/'},
   Q15862:{text:'Queen פירושו באנגלית ״מלכה״. פרדי מרקיורי הציע את השם במקום Smile; לדבריו, הוא ביקש שם שמשדר מלכותיות והדר.',source:'Freddie Mercury — Official Biography',url:'https://freddiemercury.com/bio/'}
 };
