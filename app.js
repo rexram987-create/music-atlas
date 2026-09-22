@@ -66,6 +66,7 @@ const hebrewNameGlossary={
   david:{text:'דוד הוא שם עברי, שמקובל לפרשו ״אהוב״ או ״ידיד״.',url:'https://en.wiktionary.org/wiki/David'},
   martin:{text:'מרטין נגזר מן השם הלטיני Martinus, הקשור לשמו של מארס, אל המלחמה הרומי.',url:'https://en.wiktionary.org/wiki/Martin'},
   dean:{text:'לשם דין יש יותר ממקור אפשרי, ובהם המילה האנגלית dean (דיקן) ושם משפחה שמקורו במילה העתיקה denu (עמק).',url:'https://en.wiktionary.org/wiki/Dean'},
+  jackson:{text:'ג׳קסון הוא שם משפחה אנגלי שנוצר מן Jack + son, כלומר ״בנו של ג׳ק״. ג׳ק הוא בין היתר צורת חיבה של ג׳ון. זהו פירוש שם המשפחה, לא קביעה על אילן היוחסין של האמן.',url:'https://en.wiktionary.org/wiki/Jackson'},
   john:{text:'ג׳ון הוא צורה אנגלית של יוחנן, שם עברי שפירושו המקובל ״ה׳ חנן״.',url:'https://en.wiktionary.org/wiki/John'},
   paul:{text:'פול מקורו בשם הלטיני Paulus, שפירושו ״קטן״ או ״צנוע״.',url:'https://en.wiktionary.org/wiki/Paul'},
   george:{text:'ג׳ורג׳ מקורו ביוונית Georgios, הקשור ל־georgos — ״עובד אדמה״ או ״איכר״.',url:'https://en.wiktionary.org/wiki/George'},
