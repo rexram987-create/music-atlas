@@ -66,7 +66,13 @@ const hebrewNameGlossary={
   david:{text:'דוד הוא שם עברי, שמקובל לפרשו ״אהוב״ או ״ידיד״.',url:'https://en.wiktionary.org/wiki/David'},
   martin:{text:'מרטין נגזר מן השם הלטיני Martinus, הקשור לשמו של מארס, אל המלחמה הרומי.',url:'https://en.wiktionary.org/wiki/Martin'},
   dean:{text:'לשם דין יש יותר ממקור אפשרי, ובהם המילה האנגלית dean (דיקן) ושם משפחה שמקורו במילה העתיקה denu (עמק).',url:'https://en.wiktionary.org/wiki/Dean'},
-  lady:{text:'Lady פירושו באנגלית גברת או תואר פנייה לאישה; משמעות מילונית אינה בהכרח הסיבה לבחירת שם הבמה.',url:'https://en.wiktionary.org/wiki/lady'}
+  john:{text:'ג׳ון הוא צורה אנגלית של יוחנן, שם עברי שפירושו המקובל ״ה׳ חנן״.',url:'https://en.wiktionary.org/wiki/John'},
+  paul:{text:'פול מקורו בשם הלטיני Paulus, שפירושו ״קטן״ או ״צנוע״.',url:'https://en.wiktionary.org/wiki/Paul'},
+  george:{text:'ג׳ורג׳ מקורו ביוונית Georgios, הקשור ל־georgos — ״עובד אדמה״ או ״איכר״.',url:'https://en.wiktionary.org/wiki/George'},
+  michael:{text:'מייקל הוא צורה אנגלית של מיכאל, שם עברי שפירושו ״מי כאל?״.',url:'https://en.wiktionary.org/wiki/Michael'},
+  mary:{text:'מרי היא צורה אנגלית של מרים. מקורו המדויק של השם מרים שנוי במחלוקת, ולכן אין לו פירוש מוסכם אחד.',url:'https://en.wiktionary.org/wiki/Mary'},
+  elvis:{text:'לשם אלביס הוצעו הסברים שונים למקורו, ואין פירוש אטימולוגי מוסכם אחד. אין לבלבל בין מקור השם לבין הסיבה שהזמר נקרא על שם אביו.',url:'https://en.wiktionary.org/wiki/Elvis'},
+    lady:{text:'Lady פירושו באנגלית גברת או תואר פנייה לאישה; משמעות מילונית אינה בהכרח הסיבה לבחירת שם הבמה.',url:'https://en.wiktionary.org/wiki/lady'}
 };
 function liveEtymologySection(item){
   const section=el('section','nameSection');section.append(el('h3','','בדיקה במילון השמות המקוון'));
@@ -81,7 +87,7 @@ function liveEtymologySection(item){
     message.textContent='נמצאו ערכי שמות במילון הפתוח. תקציר בעברית מוצג רק לשם שיש לו הסבר מבוקר במאגר; לשאר השמות אפשר לעיין במקור. אין להסיק שפירוש מילוני מסביר את בחירת השם.';
     for(const entry of entries){
       const known=hebrewNameGlossary[entry.word.toLowerCase()];
-      if(known&&entry.kind==='שם פרטי'){section.append(el('p','bio',entry.word+': '+known.text));section.append(el('p','muted','תקציר עברי מבוקר; אין בכך קביעה מדוע האמן קיבל או בחר בשם.'))}
+      if(known&&entry.kind!=='שם עצם פרטי'){section.append(el('p','bio',entry.word+': '+known.text));section.append(el('p','muted','תקציר עברי מבוקר; אין בכך קביעה מדוע האמן קיבל או בחר בשם.'))}
       const a=el('a','sub',entry.word+' — '+entry.kind+' בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';section.append(a)
     }
     section.append(el('p','muted','מקור: Wiktionary · תוכן המילון ברישיון CC BY-SA. קישורים לערכים, ללא העתקת פירושים.'));
