@@ -12,7 +12,7 @@ function wikidataSearch(q,lang,signal){return json('https://www.wikidata.org/w/a
 async function wikiSummary(title,lang,signal){if(!title)return null;try{return await json('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replaceAll(' ','_')),signal)}catch{return null}}
 async function entities(ids,signal){if(!ids.length)return {};const data=await json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbgetentities',ids:ids.join('|'),props:'labels|descriptions|sitelinks|claims',languages:'he|en',format:'json',origin:'*'}),signal);return data.entities||{}}
 function wikidataDate(entity,key){const time=entity?.claims?.[key]?.[0]?.mainsnak?.datavalue?.value?.time;if(!time)return null;const n=Number(time.match(/^[+-](\d+)/)?.[1]);if(!Number.isFinite(n))return null;return (time[0]==='-'?'−':'')+n}
-function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',type:identifyType((entity.descriptions?.he?.value||'')+' '+(entity.descriptions?.en?.value||''),entity.claims),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimText(entity,'P1477'),stageNames:claimText(entity,'P742')}}
+function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',type:identifyType((entity.descriptions?.he?.value||'')+' '+(entity.descriptions?.en?.value||''),entity.claims),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimText(entity,'P1477'),stageNames:claimText(entity,'P742'),nicknames:claimText(entity,'P1449'),nativeNames:claimText(entity,'P1559')}}
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
@@ -29,9 +29,11 @@ function nameSection(item){
   const story=nameStories[item.id];
   if(story){section.append(el('p','bio',story.text));const a=el('a','sub','מקור: '+story.source+' ↗');a.href=story.url;a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
   if(item.birthNames?.length){section.append(el('p','fact','שם בלידה: '+item.birthNames.join(' · ')))}
-  if(item.stageNames?.length){section.append(el('p','fact','שמות במה / כינויים מתועדים: '+item.stageNames.join(' · ')))}
-  if(item.birthNames?.length||item.stageNames?.length){const a=el('a','small','מקור לשמות המתועדים: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+encodeURIComponent(item.id);a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
-  if(!story&&!item.birthNames?.length&&!item.stageNames?.length)section.append(el('p','muted','עדיין אין במאגר מקור מאומת לסיפור שמאחורי השם. לא נציג פירוש משוער.'));
+  if(item.stageNames?.length){section.append(el('p','fact','שמות במה מתועדים: '+item.stageNames.join(' · ')))}
+  if(item.nicknames?.length){section.append(el('p','fact','כינויים מתועדים: '+item.nicknames.join(' · ')))}
+  if(item.nativeNames?.length){section.append(el('p','fact','שם בשפת המקור: '+item.nativeNames.join(' · ')))}
+  if(item.birthNames?.length||item.stageNames?.length||item.nicknames?.length||item.nativeNames?.length){const a=el('a','small','מקור לשמות המתועדים: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+encodeURIComponent(item.id);a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
+  if(!story)section.append(el('p','muted','הסיפור שמאחורי השם טרם אומת במקורות. שמות נוספים מוצגים אוטומטית כאשר הם מתועדים ב־Wikidata.'));
   return section
 }
 function visible(){return state.items.filter(i=>state.filter==='all'||i.type===state.filter)}
