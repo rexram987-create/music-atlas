@@ -80,14 +80,27 @@ const hebrewNameGlossary={
     lady:{text:'Lady פירושו באנגלית גברת או תואר פנייה לאישה; משמעות מילונית אינה בהכרח הסיבה לבחירת שם הבמה.',url:'https://en.wiktionary.org/wiki/lady'}
 };
 // Multilingual pilot: check original-script dictionary pages; never present an unverified translation as etymology.
+// Original-script dictionary discovery: Arabic definite article and French case variants.
+const verifiedMultilingualGlosses={
+  fr:{piaf:'בצרפתית מדוברת: דרור, ובהרחבה ציפור קטנה. זהו פירוש המילה; שם הבמה אינו שם משפחתה המקורי של הזמרת.'},
+  ar:{'فريد':'בערבית: יחיד במינו, ייחודי או שאין שני לו. זהו פירוש השם, ולא תיאור ביוגרפי של הזמר.','أطرش':'בערבית: חירש. זהו פירוש לשוני של שם המשפחה, ולא תיאור שמיעתו של האמן.'}
+};
+function dictionaryVariants(word,lang){
+  const variants=[word];
+  if(lang==='ar'&&word.startsWith('ال')&&word.length>3)variants.push(word.slice(2));
+  if(lang==='fr'&&word.toLowerCase()!==word)variants.push(word.toLowerCase());
+  return [...new Set(variants)]
+}
 async function multilingualDictionaryLookup(word,lang){
   const key=lang+':'+word;
   if(wiktionaryCache.has(key))return wiktionaryCache.get(key);
   const promise=(async()=>{
-    const url='https://'+lang+'.wiktionary.org/w/api.php?'+new URLSearchParams({action:'query',titles:word,format:'json',origin:'*',redirects:'1'});
-    const data=await json(url);const page=Object.values(data.query?.pages||{})[0];
-    if(!page||page.missing!==undefined)return null;
-    return {word,lang,url:'https://'+lang+'.wiktionary.org/wiki/'+encodeURIComponent(page.title)};
+    for(const variant of dictionaryVariants(word,lang)){
+      const url='https://'+lang+'.wiktionary.org/w/api.php?'+new URLSearchParams({action:'query',titles:variant,format:'json',origin:'*',redirects:'1'});
+      const data=await json(url);const page=Object.values(data.query?.pages||{})[0];
+      if(page&&page.missing===undefined)return {word,matched:page.title,lang,url:'https://'+lang+'.wiktionary.org/wiki/'+encodeURIComponent(page.title)};
+    }
+    return null
   })().catch(()=>null);
   wiktionaryCache.set(key,promise);return promise
 }
@@ -107,10 +120,13 @@ function originalLanguageSection(item){
   Promise.all(choices.map(x=>multilingualDictionaryLookup(x.word,x.lang))).then(results=>{
     if(!section.isConnected)return;
     const entries=results.filter(Boolean);
-    message.textContent=entries.length?'נמצאו ערכים בשפת המקור. אפשר לקרוא בהם פירוש ואטימולוגיה, אם קיימים בערך; עדיין לא הופק מהם תרגום אוטומטי לעברית.':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
+    message.textContent=entries.length?'נמצאו ערכים בשפת המקור. פירוש בעברית מוצג רק למילים שפירושן נבדק; החיפוש וההתאמה לערך מתבצעים אוטומטית.':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
     for(const entry of entries){
       const block=el('div','dictionaryEntry');
       const heading=el('h4','',entry.word+' — '+(entry.lang==='fr'?'צרפתית':'ערבית'));heading.dir='auto';block.append(heading);
+      if(entry.matched!==entry.word)block.append(el('p','muted','הערך המילוני שנמצא: '+entry.matched));
+      const gloss=verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
+      block.append(el('p',gloss?'bio':'muted',gloss||'פירוש בעברית טרם אומת. אפשר לעיין בערך בשפת המקור.'));
       const a=el('a','sub','פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
     }
   });
