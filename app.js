@@ -89,11 +89,15 @@ function liveEtymologySection(item){
     if(!section.isConnected)return;
     const entries=found.filter(Boolean);
     if(!entries.length){message.textContent='לא נמצא ערך שניתן לזהות בביטחון כשם פרטי או שם משפחה. לא נציג פירוש משוער.';return}
-    message.textContent='נמצאו ערכי שמות במילון הפתוח. תקציר בעברית מוצג רק לשם שיש לו הסבר מבוקר במאגר; לשאר השמות אפשר לעיין במקור. אין להסיק שפירוש מילוני מסביר את בחירת השם.';
+    message.textContent='פירוש בעברית מוצג רק כשיש הסבר שנבדק. משמעות השם אינה בהכרח הסיבה לבחירתו.';
     for(const entry of entries){
+      const block=el('div','dictionaryEntry');
+      const heading=el('h4','',entry.word+' — '+entry.kind);heading.dir='auto';block.append(heading);
       const known=hebrewNameGlossary[entry.word.toLowerCase()];
-      if(known&&entry.kind!=='שם עצם פרטי'){section.append(el('p','bio',entry.word+': '+known.text));section.append(el('p','muted','תקציר עברי מבוקר; אין בכך קביעה מדוע האמן קיבל או בחר בשם.'))}
-      const a=el('a','sub',entry.word+' — '+entry.kind+' בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';section.append(a)
+      if(known&&entry.kind!=='שם עצם פרטי')block.append(el('p','bio',known.text));
+      else block.append(el('p','muted','פירוש השם בעברית טרם אומת. אפשר לעיין בערך המקורי.'));
+      const a=el('a','sub','פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);
+      section.append(block)
     }
     section.append(el('p','muted','מקור: Wiktionary · תוכן המילון ברישיון CC BY-SA. קישורים לערכים, ללא העתקת פירושים.'));
   });
