@@ -164,7 +164,13 @@ async function search(q){if(state.controller)state.controller.abort();state.cont
   'דייוויד בואי':'David Bowie',
   'דיוויד בואי':'David Bowie',
   'דין מרטין':'Dean Martin',
-  'ליידי גאגא':'Lady Gaga'
+  'ליידי גאגא':'Lady Gaga',
+  'אדית פיאף':'Édith Piaf',
+  'אידית פיאף':'Édith Piaf',
+  'אדיט פיאף':'Édith Piaf',
+  'פריד אל עטרש':'Farid al-Atrash',
+  'פריד אלאטרש':'Farid al-Atrash',
+  'פריד אל אטרש':'Farid al-Atrash'
 };
 const canonical=s=>normalize(s).replace(/[׳'‘’`״"\u200e\u200f]/g,'').replace(/\s+/g,' ');
 const alias=aliases[canonical(q)]||null;
