@@ -65,7 +65,7 @@ function liveEtymologySection(item){
   const section=el('section','nameSection');section.append(el('h3','','בדיקה במילון השמות המקוון'));
   const message=el('p','muted','מחפש ערכי שמות מתאימים בוויקימילון…');section.append(message);
   const english=(item.englishTitle||'').trim();
-  const parts=english.split(/\\s+/).filter(w=>/^[A-Za-z][A-Za-z'-]*$/.test(w)).slice(0,4);
+  const parts=english.split(/\s+/).filter(w=>/^[A-Za-z][A-Za-z'-]*$/.test(w)).slice(0,4);
   if(!parts.length){message.textContent='אין שם באותיות לטיניות לחיפוש מדויק. אפשר לעיין בשמות המתועדים לעיל.';return section}
   Promise.all([...new Set(parts)].map(wiktionaryNameLookup)).then(found=>{
     if(!section.isConnected)return;
