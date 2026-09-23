@@ -1,6 +1,6 @@
 # Music Atlas — האטלס המוזיקלי
 
-Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, biography cards, representative images, a small set of sourced name stories, and automatic name-component identification where Wikidata records the given and family names. Sourced dictionary links and checked Hebrew explanations appear when available.
+Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, biography cards, representative images, a small set of sourced name stories, and automatic name-component identification where Wikidata records the given and family names. Sourced dictionary links and checked Hebrew explanations appear when available. For Hebrew given names that are also common words, the app automatically checks Hebrew Wiktionary for an exact entry recording both the name and the word sense, then labels the word's meaning separately from the person's naming history.
 
 ## Deployment
 

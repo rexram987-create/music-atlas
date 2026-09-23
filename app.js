@@ -1,4 +1,5 @@
 import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {hebrewWordSense} from './name-gloss.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -133,6 +134,19 @@ async function multilingualDictionaryLookup(word,lang){
 // Experimental automatic gloss extraction from the English Wiktionary's original-script entry.
 // A dictionary definition is not necessarily the historical origin of a person's name.
 const definitionCache=new Map();
+async function hebrewDictionaryGloss(word){
+  if(!/^[\u0590-\u05ff]+$/.test(word))return null;
+  const key='hebrew:'+word;
+  if(definitionCache.has(key))return definitionCache.get(key);
+  const promise=(async()=>{
+    const url='https://he.wiktionary.org/w/api.php?'+new URLSearchParams({action:'parse',page:word,prop:'wikitext',format:'json',origin:'*'});
+    const data=await json(url);
+    const meaning=hebrewWordSense(data.parse?.wikitext?.['*']);
+    return meaning?{meaning,url:'https://he.wiktionary.org/wiki/'+encodeURIComponent(word)}:null;
+  })().catch(()=>null);
+  definitionCache.set(key,promise);
+  return promise;
+}
 async function automaticDictionaryGloss(entry){
   const key='definition:'+entry.lang+':'+entry.matched;
   if(definitionCache.has(key))return definitionCache.get(key);
@@ -233,6 +247,12 @@ function structuredNameSection(item){
       if(known){
         block.append(el('p','bio',known.text));
         const source=el('a','sub','מקור לפירוש: ויקימילון ↗');source.href=known.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
+      }else if(part.role==='שם פרטי'&&/[\u0590-\u05ff]/.test(part.word)){
+        hebrewDictionaryGloss(part.word).then(result=>{
+          if(!result||!block.isConnected)return;
+          block.append(el('p','bio','משמעות המילה בעברית: '+result.meaning+' אין בכך קביעה מדוע נבחר השם לאמן.'));
+          const source=el('a','sub','מקור למשמעות המילה: ויקימילון ↗');source.href=result.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
+        });
       }
       const a=el('a','sub','מקור לזיהוי חלק השם: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+part.id;a.target='_blank';a.rel='noopener noreferrer';block.append(a);
       section.append(block);
