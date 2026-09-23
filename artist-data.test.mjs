@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {artistTypes, matchesFilter, namePartRole, readSavedArtists, saveArtist, findSavedArtists} from './artist-data.mjs';
+import * as artistData from './artist-data.mjs';
+const {artistTypes, matchesFilter, namePartRole, readSavedArtists, saveArtist, findSavedArtists}=artistData;
 
 const claim = id => ({mainsnak:{datavalue:{value:{id}}}});
 const entity = (id, instances, occupations=[], description='') => ({
@@ -35,6 +36,24 @@ test('French surname and Arabic family name are not labelled given names', () =>
   assert.equal(namePartRole('Piaf','fr',1,2),'שם במה / כינוי');
   assert.equal(namePartRole('فريد','ar',0,2),'שם פרטי');
   assert.equal(namePartRole('الأطرش','ar',1,2),'שם משפחה');
+});
+
+test('translated Arabic label does not turn a native Hebrew name into an Arabic dictionary lookup', () => {
+  const nameDictionaryLanguage=artistData.nameDictionaryLanguage;
+  assert.equal(typeof nameDictionaryLanguage,'function');
+  assert.equal(nameDictionaryLanguage({id:'Q509660',arabicTitle:'أريك أينشتاين',nativeNames:['אריק איינשטיין']}),'he');
+  assert.equal(nameDictionaryLanguage({id:'Q1391669',arabicTitle:'فريد الأطرش',nativeNames:['فريد الأطرش']}),'ar');
+  assert.equal(nameDictionaryLanguage({id:'Q1631',frenchTitle:'Édith Piaf',nativeNames:[]}),'fr');
+});
+
+test('Wikidata monolingual native names are read before choosing the dictionary', () => {
+  const claimNames=artistData.claimNames;
+  assert.equal(typeof claimNames,'function');
+  const arik={claims:{P1559:[{mainsnak:{datavalue:{value:{text:'אריק איינשטיין',language:'he'}}}}]}};
+  const farid={claims:{P1559:[{mainsnak:{datavalue:{value:{text:'فريد الأطرش',language:'ar'}}}}]}};
+  assert.deepEqual(claimNames(arik,'P1559'),['אריק איינשטיין']);
+  assert.equal(artistData.nameDictionaryLanguage({arabicTitle:'أريك أينشتاين',nativeNames:claimNames(arik,'P1559')}),'he');
+  assert.equal(artistData.nameDictionaryLanguage({arabicTitle:'فريد الأطرش',nativeNames:claimNames(farid,'P1559')}),'ar');
 });
 
 test('saved artists can be found offline by an alternate language label', () => {
