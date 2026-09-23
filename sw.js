@@ -1,5 +1,5 @@
-const CACHE='music-atlas-shell-v29';
-const SHELL=['/','/index.html','/app.js','/artist-data.mjs','/manifest.webmanifest','/icon.svg','/icon-192.png','/icon-512.png'];
+const CACHE='music-atlas-shell-v30';
+const SHELL=['/','/index.html','/app.js','/artist-data.mjs','/name-gloss.mjs','/manifest.webmanifest','/icon.svg','/icon-192.png','/icon-512.png'];
 
 self.addEventListener('install',event=>{
   event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(SHELL)));
