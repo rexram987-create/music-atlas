@@ -142,7 +142,7 @@ async function automaticDictionaryGloss(entry){
 }
 function originalLanguageSection(item){
   const choices=[];
-  if(item.id==='Q1631'){
+  if(item.id==='Q1631'||/^(georges brassens)$/i.test(item.frenchTitle||'')){
     for(const word of (item.frenchTitle||'').split(/\s+/).filter(Boolean).slice(0,3))choices.push({word,lang:'fr'});
   }
   const arabic=(item.arabicTitle||'').trim();
@@ -243,9 +243,14 @@ async function search(q){if(state.controller)state.controller.abort();state.cont
   'אדיט פיאף':'Édith Piaf',
   'פריד אל עטרש':'Farid al-Atrash',
   'פריד אלאטרש':'Farid al-Atrash',
-  'פריד אל אטרש':'Farid al-Atrash'
+  'פריד אל אטרש':'Farid al-Atrash',
+  'גורג ברסנס':'Georges Brassens',
+  'גורג ברסאנס':'Georges Brassens',
+  'גורג ברסאן':'Georges Brassens',
+  'גורג ברסנסס':'Georges Brassens',
+  'גאורג ברסנס':'Georges Brassens'
 };
-const canonical=s=>normalize(s).replace(/[׳'‘’`״"\u200e\u200f]/g,'').replace(/\s+/g,' ');
+const canonical=s=>normalize(s).replace(/[׳'‘’`״"\u200e\u200f]/g,'').replace(/[־\-]/g,' ').replace(/\s+/g,' ');
 const alias=aliases[canonical(q)]||null;
 const variants=[q];
 if(alias)variants.push(alias);
