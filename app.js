@@ -178,7 +178,7 @@ function originalLanguageSection(item){
         automaticDictionaryGloss(entry).then(result=>{
           if(!pending.isConnected)return;
           if(!result){pending.textContent='לא נמצאה הגדרה שניתן לחלץ בביטחון. אפשר לעיין בערך המילוני.';return}
-          pending.textContent='הגדרה מילונית באנגלית (חולצה אוטומטית; עדיין לא תורגמה לעברית): '+result.definition;
+          pending.textContent='הגדרה מילונית באנגלית (חולצה מן המקור אוטומטית; עדיין לא תורגמה לעברית): '+result.definition;
           const source=el('a','sub','מקור ההגדרה באנגלית ↗');source.href=result.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
         });
       }
