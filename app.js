@@ -88,7 +88,11 @@ const hebrewNameGlossary={
 // Multilingual pilot: check original-script dictionary pages; never present an unverified translation as etymology.
 // Original-script dictionary discovery: Arabic definite article and French case variants.
 const verifiedMultilingualGlosses={
-  fr:{piaf:'בצרפתית מדוברת: דרור, ובהרחבה ציפור קטנה. זהו פירוש המילה; שם הבמה אינו שם משפחתה המקורי של הזמרת.'},
+  fr:{
+    piaf:'בצרפתית מדוברת: דרור, ובהרחבה ציפור קטנה. זהו פירוש המילה; שם הבמה אינו שם משפחתה המקורי של הזמרת.',
+    georges:'מקור השם ביוונית: ״עובד אדמה״ או ״איכר״. זהו פירוש השם, ולא תיאור של עיסוק הזמר.',
+    brassens:{text:'לפי חוקר השמות ז׳אן טוסטי, ייתכן שמקור שם המשפחה בשם המקום Brassenx, אזור היסטורי בדרום־מערב צרפת. זו השערה על מקור שם המשפחה; אין ראיה שכך נוצר שמה של משפחת הזמר.',source:'Geneanet — Jean Tosti',url:'https://www.geneanet.org/nom-de-famille/BRASSENS'}
+  },
   ar:{'فريد':'בערבית: יחיד במינו, ייחודי או שאין שני לו. זהו פירוש השם, ולא תיאור ביוגרפי של הזמר.','أطرش':'בערבית: חירש. זהו פירוש לשוני של שם המשפחה, ולא תיאור שמיעתו של האמן.'}
 };
 function dictionaryVariants(word,lang){
@@ -189,9 +193,10 @@ function originalLanguageSection(item){
       const heading=el('h4','',entry.role+': '+entry.word);heading.dir='auto';block.append(heading);
       const key=entry.lang==='ar'?entry.matched.replace(/^ال/,''):entry.matched.toLowerCase();
       const gloss=verifiedMultilingualGlosses[entry.lang]?.[key]||verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
+      const sourcedGloss=gloss&&typeof gloss==='object';
       if(gloss){
-        const lead=isSurname?'פירוש שם המשפחה: ':isGiven?'פירוש השם הפרטי: ':'פירוש המילה: ';
-        block.append(el('p','bio',lead+gloss));
+        const lead=isSurname?(sourcedGloss?'הסבר אפשרי למקור שם המשפחה: ':'פירוש שם המשפחה: '):isGiven?'פירוש השם הפרטי: ':'פירוש המילה: ';
+        block.append(el('p','bio',lead+(sourcedGloss?gloss.text:gloss)));
       }else{
         const pending=el('p','muted','מחפש הגדרה מילונית אוטומטית…');block.append(pending);
         automaticDictionaryGloss(entry).then(result=>{
@@ -203,7 +208,7 @@ function originalLanguageSection(item){
       }
       if(entry.matched!==entry.word)block.append(el('p','muted','לצורך הבדיקה המילונית חיפשנו גם את הצורה '+entry.matched+' ללא ה״א הידיעה הערבית „אל־”.'));
       if(entry.site!==entry.lang)block.append(el('p','muted','הערך נמצא בוויקימילון האנגלי בכתיב הערבי המקורי.'));
-      const a=el('a','sub',gloss?'מקור לפירוש: ויקימילון ↗':'פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
+      const a=el('a','sub',sourcedGloss?'מקור להסבר: '+gloss.source+' ↗':gloss?'מקור לפירוש: ויקימילון ↗':'פתיחת הערך בוויקימילון ↗');a.href=sourcedGloss?gloss.url:entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
     }
   });
   return section
