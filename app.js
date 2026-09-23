@@ -1,4 +1,4 @@
-import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -14,7 +14,7 @@ function wikidataSearch(q,lang,signal){return json('https://www.wikidata.org/w/a
 async function wikiSummary(title,lang,signal){if(!title)return null;try{return await json('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replaceAll(' ','_')),signal)}catch{return null}}
 async function entities(ids,signal){if(!ids.length)return {};const data=await json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbgetentities',ids:ids.join('|'),props:'labels|descriptions|sitelinks|claims',languages:'he|en|fr|ar',format:'json',origin:'*'}),signal);return data.entities||{}}
 function wikidataDate(entity,key){const time=entity?.claims?.[key]?.[0]?.mainsnak?.datavalue?.value?.time;if(!time)return null;const n=Number(time.match(/^[+-](\d+)/)?.[1]);if(!Number.isFinite(n))return null;return (time[0]==='-'?'−':'')+n}
-function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimText(entity,'P1477'),stageNames:claimText(entity,'P742'),nicknames:claimText(entity,'P1449'),nativeNames:claimText(entity,'P1559')}}
+function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimNames(entity,'P1477'),stageNames:claimNames(entity,'P742'),nicknames:claimNames(entity,'P1449'),nativeNames:claimNames(entity,'P1559')}}
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
@@ -221,7 +221,6 @@ function liveEtymologySection(item){
   });
   return section
 }
-function claimText(entity,key){return (entity?.claims?.[key]||[]).map(c=>c.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim()).filter((v,i,a)=>a.indexOf(v)===i)}
 function nameSection(item){
   const story=nameStories[item.id];
   const nativeNames=(item.nativeNames||[]).filter(name=>normalize(name)!==normalize(item.title));

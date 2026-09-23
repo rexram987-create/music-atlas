@@ -7,6 +7,13 @@ const savedKey='music-atlas-artists-v1';
 const claimIds=(entity,property)=>(entity.claims?.[property]||[])
   .map(claim=>claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
 
+export function claimNames(entity,property){
+  return [...new Set((entity?.claims?.[property]||[])
+    .map(claim=>claim.mainsnak?.datavalue?.value)
+    .map(value=>typeof value==='string'?value:value?.text)
+    .filter(value=>typeof value==='string'&&value.trim()))];
+}
+
 export function artistTypes(entity){
   const instances=claimIds(entity,'P31');
   if(instances.some(id=>groupKinds.has(id)))return ['band'];

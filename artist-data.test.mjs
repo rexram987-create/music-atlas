@@ -46,6 +46,16 @@ test('translated Arabic label does not turn a native Hebrew name into an Arabic 
   assert.equal(nameDictionaryLanguage({id:'Q1631',frenchTitle:'Édith Piaf',nativeNames:[]}),'fr');
 });
 
+test('Wikidata monolingual native names are read before choosing the dictionary', () => {
+  const claimNames=artistData.claimNames;
+  assert.equal(typeof claimNames,'function');
+  const arik={claims:{P1559:[{mainsnak:{datavalue:{value:{text:'אריק איינשטיין',language:'he'}}}}]}};
+  const farid={claims:{P1559:[{mainsnak:{datavalue:{value:{text:'فريد الأطرش',language:'ar'}}}}]}};
+  assert.deepEqual(claimNames(arik,'P1559'),['אריק איינשטיין']);
+  assert.equal(artistData.nameDictionaryLanguage({arabicTitle:'أريك أينشتاين',nativeNames:claimNames(arik,'P1559')}),'he');
+  assert.equal(artistData.nameDictionaryLanguage({arabicTitle:'فريد الأطرش',nativeNames:claimNames(farid,'P1559')}),'ar');
+});
+
 test('saved artists can be found offline by an alternate language label', () => {
   const values=new Map();
   const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
