@@ -33,6 +33,13 @@ export function matchNameParts(item,nameEntities){
   return parts;
 }
 
+export function missingDisplayedNameParts(item,parts){
+  if(item.nameIds?.family?.length||item.stageNames?.length)return [];
+  const words=(item.title||'').trim().split(/\s+/);
+  if(words.length!==2||!parts.some(part=>part.role==='שם פרטי'&&normalizedName(part.word)===normalizedName(words[0])))return [];
+  return [{word:words[1],role:'רכיב נוסף בשם'}];
+}
+
 export function claimNames(entity,property){
   return [...new Set((entity?.claims?.[property]||[])
     .map(claim=>claim.mainsnak?.datavalue?.value)
