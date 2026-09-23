@@ -125,15 +125,27 @@ function originalLanguageSection(item){
   Promise.all(choices.map(x=>multilingualDictionaryLookup(x.word,x.lang))).then(results=>{
     if(!section.isConnected)return;
     const entries=results.filter(Boolean);
-    message.textContent=entries.length?'נמצאו ערכים בשפת המקור. פירוש בעברית מוצג רק למילים שפירושן נבדק; החיפוש וההתאמה לערך מתבצעים אוטומטית.':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
+    const isFarid=/فريد/.test(arabic)&&/طرش/.test(arabic);
+    message.textContent=entries.length?'פירוש רכיבי השם בעברית, לפי הסדר שבו הם מופיעים בשם האמן:':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
+    if(isFarid){
+      const intro=el('p','bio','שמו של האמן מורכב משם פרטי — פריד — ומשם משפחה — אל־אטרש. אלה פירושים לשוניים של השמות, ולא תיאור של תכונותיו או מצבו הרפואי.');
+      section.append(intro);
+    }
     for(const entry of entries){
       const block=el('div','dictionaryEntry');
-      const heading=el('h4','',entry.word+' — '+(entry.lang==='fr'?'צרפתית':'ערבית'));heading.dir='auto';block.append(heading);
-      if(entry.matched!==entry.word)block.append(el('p','muted','הערך המילוני שנמצא: '+entry.matched));
-      if(entry.site!==entry.lang)block.append(el('p','muted','הערך בשפת המקור נמצא בוויקימילון האנגלי.'));
-      const gloss=verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
-      block.append(el('p',gloss?'bio':'muted',gloss||'פירוש בעברית טרם אומת. אפשר לעיין בערך בשפת המקור.'));
-      const a=el('a','sub','פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
+      const isSurname=entry.lang==='ar'&&entry.word.startsWith('ال');
+      const isGiven=entry.lang==='ar'&&!isSurname;
+      const role=isSurname?'שם משפחה':isGiven?'שם פרטי':entry.lang==='fr'&&entry.word.toLowerCase()==='piaf'?'שם במה / כינוי':'שם פרטי';
+      const heading=el('h4','',role+': '+entry.word);heading.dir='auto';block.append(heading);
+      const key=entry.lang==='ar'?entry.matched.replace(/^ال/,''):entry.matched.toLowerCase();
+      const gloss=verifiedMultilingualGlosses[entry.lang]?.[key]||verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
+      if(gloss){
+        const lead=isSurname?'פירוש שם המשפחה: ':isGiven?'פירוש השם הפרטי: ':'פירוש המילה: ';
+        block.append(el('p','bio',lead+gloss));
+      }else block.append(el('p','muted','עדיין אין פירוש מאומת בעברית לרכיב זה. אפשר לעיין בערך המילוני.'));
+      if(entry.matched!==entry.word)block.append(el('p','muted','לצורך הבדיקה המילונית חיפשנו גם את הצורה '+entry.matched+' ללא ה״א הידיעה הערבית „אל־”.'));
+      if(entry.site!==entry.lang)block.append(el('p','muted','הערך נמצא בוויקימילון האנגלי בכתיב הערבי המקורי.'));
+      const a=el('a','sub','מקור לפירוש: ויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
     }
   });
   return section
