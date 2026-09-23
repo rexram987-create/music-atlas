@@ -7,11 +7,42 @@ const savedKey='music-atlas-artists-v1';
 const claimIds=(entity,property)=>(entity.claims?.[property]||[])
   .map(claim=>claim.mainsnak?.datavalue?.value?.id).filter(Boolean);
 
+export function nameClaimIds(entity){
+  return {given:claimIds(entity,'P735').slice(0,4),family:claimIds(entity,'P734').slice(0,4)};
+}
+
+const normalizedName=value=>(value||'').toLocaleLowerCase().normalize('NFKD')
+  .replace(/\p{M}/gu,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim().replace(/\s+/g,' ');
+
+export function matchNameParts(item,nameEntities){
+  const titles=[{value:item.title,lang:'he'},...(item.nativeNames||[]).map(value=>({value,lang:/[\u0600-\u06ff]/.test(value)?'ar':/[\u0590-\u05ff]/.test(value)?'he':'fr'})),
+    {value:item.frenchTitle,lang:'fr'},{value:item.arabicTitle,lang:'ar'},{value:item.englishTitle,lang:'en'}].filter(x=>x.value);
+  const parts=[];
+  for(const [kind,role] of [['given','שם פרטי'],['family','שם משפחה']]){
+    for(const id of item.nameIds?.[kind]||[]){
+      const labels=nameEntities[id]?.labels||{};
+      const words=[...new Set(Object.values(labels).map(label=>label?.value).filter(Boolean))];
+      const word=titles.flatMap(({value,lang})=>{
+        const title=' '+normalizedName(value)+' ';
+        const choices=[labels[lang]?.value,...words].filter(Boolean);
+        return choices.filter(label=>title.includes(' '+normalizedName(label)+' '));
+      }).at(0);
+      if(word)parts.push({id,role,word,english:labels.en?.value||''});
+    }
+  }
+  return parts;
+}
+
 export function claimNames(entity,property){
   return [...new Set((entity?.claims?.[property]||[])
     .map(claim=>claim.mainsnak?.datavalue?.value)
     .map(value=>typeof value==='string'?value:value?.text)
     .filter(value=>typeof value==='string'&&value.trim()))];
+}
+
+export function nativeNameLanguages(entity){
+  return [...new Set((entity?.claims?.P1559||[])
+    .map(claim=>claim.mainsnak?.datavalue?.value?.language).filter(Boolean))];
 }
 
 export function artistTypes(entity){
@@ -48,6 +79,7 @@ export function nameDictionaryLanguage(item){
   const arabic=native.some(name=>/[\u0600-\u06ff]/.test(name));
   if(hebrew)return 'he';
   if(arabic&&/[\u0600-\u06ff]/.test(item.arabicTitle||''))return 'ar';
+  if(item.nativeNameLanguages?.some(lang=>lang==='fr'||lang.startsWith('fr-'))&&item.frenchTitle)return 'fr';
   if(item.id==='Q1631'||/^(georges brassens)$/i.test(item.frenchTitle||''))return 'fr';
   return 'en';
 }

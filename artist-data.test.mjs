@@ -56,6 +56,37 @@ test('Wikidata monolingual native names are read before choosing the dictionary'
   assert.equal(artistData.nameDictionaryLanguage({arabicTitle:'فريد الأطرش',nativeNames:claimNames(farid,'P1559')}),'ar');
 });
 
+test('French native name metadata enables the French dictionary without artist-specific rules', () => {
+  const native={claims:{P1559:[{mainsnak:{datavalue:{value:{text:'Charles Aznavour',language:'fr'}}}}]}};
+  assert.deepEqual(artistData.nativeNameLanguages(native),['fr']);
+  assert.equal(artistData.nameDictionaryLanguage({nativeNames:['Charles Aznavour'],nativeNameLanguages:['fr'],frenchTitle:'Charles Aznavour',arabicTitle:'شارل أزنافور'}),'fr');
+});
+
+test('structured given and family names are matched to the displayed artist, not an old surname', () => {
+  const extract=artistData.nameClaimIds;
+  const match=artistData.matchNameParts;
+  assert.equal(typeof extract,'function');
+  assert.equal(typeof match,'function');
+  const claims={P735:[claim('Qedith'),claim('Qgiovanna')],P734:[claim('Qgassion')]};
+  const nameIds=extract({claims});
+  const labels={
+    Qedith:{labels:{en:{value:'Edith'},fr:{value:'Édith'}}},
+    Qgiovanna:{labels:{fr:{value:'Giovanna'}}},
+    Qgassion:{labels:{fr:{value:'Gassion'}}}
+  };
+  assert.deepEqual(match({title:'אדית פיאף',frenchTitle:'Édith Piaf',nameIds},labels),[
+    {id:'Qedith',role:'שם פרטי',word:'Édith',english:'Edith'}
+  ]);
+});
+
+test('Arabic original spelling and Hebrew name components match their Wikidata identities', () => {
+  const match=artistData.matchNameParts;
+  const farid={title:'פריד אל-אטרש',arabicTitle:'فريد الأطرش',nativeNames:['فريد الأطرش'],nameIds:{given:['Qfarid'],family:['Qatrash']}};
+  assert.deepEqual(match(farid,{Qfarid:{labels:{ar:{value:'فريد'}}},Qatrash:{labels:{ar:{value:'الأطرش'}}}}).map(x=>x.role),['שם פרטי','שם משפחה']);
+  const arik={title:'אריק איינשטיין',nativeNames:['אריק איינשטיין'],nameIds:{given:['Qarik'],family:['Qeinstein']}};
+  assert.deepEqual(match(arik,{Qarik:{labels:{he:{value:'אריק'}}},Qeinstein:{labels:{he:{value:'איינשטיין'}}}}).map(x=>x.word),['אריק','איינשטיין']);
+});
+
 test('saved artists can be found offline by an alternate language label', () => {
   const values=new Map();
   const storage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
