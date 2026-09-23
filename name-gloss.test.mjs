@@ -15,6 +15,8 @@ test('a word without a documented name sense is not treated as a name meaning',(
 test('ambiguous or formatted definitions are left for the reader to inspect',()=>{
   assert.equal(hebrewWordSense('==שם==\n# {{פירושונים|מילה}}\n# שם פרטי לזכר.'),null);
   assert.equal(hebrewWordSense('==שם==\n# שם פרטי לזכר.'),null);
+  assert.equal(hebrewWordSense('==יְהוּדָה==\n# אחד משנים־עשר שבטי ישראל הנקרא ע״ש בנם הרביעי של יעקב אבינו ולאה אמנו.\n# שם פרטי לזכר.'),null);
+  assert.equal(hebrewWordSense('==שם==\n# עיר בישראל.\n# שם פרטי לזכר.'),null);
 });
 
 test('a missing Wikidata family claim leaves the visible component unclassified',()=>{

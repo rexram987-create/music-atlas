@@ -7,11 +7,14 @@ export function hebrewWordSense(wikitext){
     if(!definitions.some(line=>/#\s(?:\[\[)?שם פרטי/.test(line)))continue;
     for(const line of definitions){
       if(/שם פרטי|שם משפחה|\{\{/.test(line))continue;
+      // A linked list of synonyms is a lexical sense; prose can describe a
+      // person, tribe or place named after the word instead of its meaning.
+      if(!/^#\s\[\[[^\]]+\]\](?:\s*,\s*\[\[[^\]]+\]\])*\s*[.!?]?$/.test(line))continue;
       const meaning=line.slice(2)
         .replace(/\[\[(?:[^|\]]+\|)?([^\]]+)\]\]/g,'$1')
         .replace(/'{2,}/g,'')
         .replace(/\s+/g,' ').trim();
-      if(meaning.length>=4&&meaning.length<=130&&/[א-ת]/.test(meaning)&&!/[\[\]{}<>]/.test(meaning))return meaning;
+      if(meaning.length>=4&&meaning.length<=65&&/[א-ת]/.test(meaning)&&!/[\[\]{}<>]/.test(meaning))return meaning;
     }
   }
   return null;

@@ -254,7 +254,7 @@ function structuredNameSection(item){
       if(fallback)section.replaceWith(fallback);else section.remove();
       return;
     }
-    message.textContent='אלה חלקי השם שמופיעים בכרטיס ומתועדים בנפרד ב־Wikidata. פירוש לשוני מופיע רק כשיש לו מקור נוסף.';
+    message.textContent='אלה רכיבי השם שמופיעים בכרטיס. חלקם מתועדים בנפרד ב־Wikidata; פירוש לשוני מופיע רק כשיש לו מקור נוסף.';
     for(const part of [...parts,...missingDisplayedNameParts(item,parts)]){
       const block=el('div','dictionaryEntry');
       const heading=el('h4','',part.role+': '+part.word);heading.dir='auto';block.append(heading);
