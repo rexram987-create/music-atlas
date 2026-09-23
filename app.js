@@ -109,6 +109,37 @@ async function multilingualDictionaryLookup(word,lang){
   })().catch(()=>null);
   wiktionaryCache.set(key,promise);return promise
 }
+// Experimental automatic gloss extraction from the English Wiktionary's original-script entry.
+// A dictionary definition is not necessarily the historical origin of a person's name.
+const definitionCache=new Map();
+async function automaticDictionaryGloss(entry){
+  const key='definition:'+entry.lang+':'+entry.matched;
+  if(definitionCache.has(key))return definitionCache.get(key);
+  const promise=(async()=>{
+    const wanted=entry.lang==='ar'?'Arabic':'French';
+    const url='https://en.wiktionary.org/w/api.php?'+new URLSearchParams({action:'parse',page:entry.matched,prop:'text',format:'json',origin:'*',redirects:'1'});
+    const data=await json(url);
+    const html=data.parse?.text?.['*'];if(!html)return null;
+    const doc=new DOMParser().parseFromString(html,'text/html');
+    const heading=[...doc.querySelectorAll('h2')].find(h=>h.textContent.trim().replace(/\[edit\]/gi,'').includes(wanted));
+    if(!heading)return null;
+    let node=heading.nextElementSibling;
+    while(node&&node.tagName!=='H2'){
+      const sections=node.matches?.('ol')?[node]:[...node.querySelectorAll?.('ol')||[]];
+      for(const ol of sections){
+        const li=[...ol.children].find(n=>n.tagName==='LI');
+        if(!li)continue;
+        const copy=li.cloneNode(true);
+        copy.querySelectorAll('ul,ol,dl,.reference,.mw-cite-backlink,.HQToggle,.nyms-toggle').forEach(n=>n.remove());
+        const definition=copy.textContent.replace(/\s+/g,' ').trim();
+        if(definition.length>=4&&definition.length<=260)return {definition,url:'https://en.wiktionary.org/wiki/'+encodeURIComponent(entry.matched)+'#'+wanted};
+      }
+      node=node.nextElementSibling;
+    }
+    return null
+  })().catch(()=>null);
+  definitionCache.set(key,promise);return promise
+}
 function originalLanguageSection(item){
   const choices=[];
   if(item.id==='Q1631'){
@@ -142,7 +173,15 @@ function originalLanguageSection(item){
       if(gloss){
         const lead=isSurname?'פירוש שם המשפחה: ':isGiven?'פירוש השם הפרטי: ':'פירוש המילה: ';
         block.append(el('p','bio',lead+gloss));
-      }else block.append(el('p','muted','עדיין אין פירוש מאומת בעברית לרכיב זה. אפשר לעיין בערך המילוני.'));
+      }else{
+        const pending=el('p','muted','מחפש הגדרה מילונית אוטומטית…');block.append(pending);
+        automaticDictionaryGloss(entry).then(result=>{
+          if(!pending.isConnected)return;
+          if(!result){pending.textContent='לא נמצאה הגדרה שניתן לחלץ בביטחון. אפשר לעיין בערך המילוני.';return}
+          pending.textContent='הגדרה מילונית באנגלית (חולצה אוטומטית; עדיין לא תורגמה לעברית): '+result.definition;
+          const source=el('a','sub','מקור ההגדרה באנגלית ↗');source.href=result.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
+        });
+      }
       if(entry.matched!==entry.word)block.append(el('p','muted','לצורך הבדיקה המילונית חיפשנו גם את הצורה '+entry.matched+' ללא ה״א הידיעה הערבית „אל־”.'));
       if(entry.site!==entry.lang)block.append(el('p','muted','הערך נמצא בוויקימילון האנגלי בכתיב הערבי המקורי.'));
       const a=el('a','sub','מקור לפירוש: ויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
