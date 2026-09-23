@@ -1,7 +1,7 @@
 import {artistTypes,matchesFilter,namePartRole,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 
 const $=id=>document.getElementById(id);
-const state={filter:'all',items:[],controller:null,lastSearch:''};
+const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
 const seeds=[['Q254','מוצרט'],['Q303','אלביס פרסלי'],['Q1299','הביטלס'],['Q255','בטהובן'],['Q509660','אריק איינשטיין'],['Q15862','קווין']];
 const typeLabels={singer:'זמר/ת',band:'להקה',composer:'מלחין/ה',all:'מוזיקאי/ת'};
 const typeLabel=item=>item.types.map(type=>typeLabels[type]).join(' · ');
@@ -261,7 +261,7 @@ function showSavedArtists(query=''){
   const shown=visible().length;
   setStatus(shown?'אין חיבור למאגר. מוצגים '+shown+' כרטיסים שנשמרו בביקור קודם; ייתכן שהמידע בהם השתנה.':saved.length?'יש כרטיסים שמורים, אך אין תוצאות בסינון זה. בחר ״הכול״ כדי לראותם.':'אין חיבור למאגר. לא נשמרו כרטיסים תואמים במכשיר הזה. התחבר לאינטרנט ונסה שוב.');
 }
-async function search(q){if(state.controller)state.controller.abort();if(!navigator.onLine){showSavedArtists(q);return}state.lastSearch=q;state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
+async function search(q){if(state.controller)state.controller.abort();const generation=++state.generation;if(!navigator.onLine){showSavedArtists(q);return}state.lastSearch=q;state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
   'מייקל גקסון':'Michael Jackson',
   'מייקל גקסן':'Michael Jackson',
   'פול מקרטני':'Paul McCartney',
@@ -287,15 +287,18 @@ const variants=[q];
 if(alias)variants.push(alias);
 const queries=variants.flatMap(term=>[wikidataSearch(term,'he',signal),wikidataSearch(term,'en',signal)]);
 const responses=await Promise.allSettled(queries);
+if(generation!==state.generation)return;
 const found=new Map();
 for(const response of responses)if(response.status==='fulfilled')for(const result of response.value.search||[])if(!found.has(result.id))found.set(result.id,result);
 if(!found.size&&responses.every(response=>response.status==='rejected'))throw Error('שירות החיפוש אינו זמין');
 const ids=[...found.keys()].slice(0,50);
 if(!ids.length){state.items=[];setStatus('לא נמצאו תוצאות. נסה כתיב אחר או שם באנגלית.');paint();return}
-state.items=await loadEntities(ids,signal);
+const items=await loadEntities(ids,signal);
+if(generation!==state.generation)return;
+state.items=items;
 setStatus(state.items.length===1?'נמצא אמן אחד. בחר בו כדי לפתוח כרטיס.':state.items.length?'נמצאו '+state.items.length+' אמנים. בחר אמן כדי לפתוח כרטיס.':'לא נמצאו אמנים בשם הזה. נסה כתיב אחר או שם באנגלית.');
 paint()
-}catch(e){if(e.name==='AbortError')return;console.error(e);showSavedArtists(q)}}
+}catch(e){if(e.name==='AbortError'||generation!==state.generation)return;console.error(e);showSavedArtists(q)}}
 async function show(item){
   if(!item.savedAt)saveArtist(localStorage,{...item,searchTerms:state.lastSearch?[state.lastSearch]:[]});
   $('results').replaceChildren();const detail=$('detail');detail.replaceChildren();detail.classList.remove('hidden');
@@ -322,14 +325,17 @@ async function show(item){
 $('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=$('searchInput').value.trim();if(q.length>=2)search(q)});
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;document.querySelectorAll('.tab').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});paint()}));
 (async()=>{
+  const generation=state.generation;
   if(!navigator.onLine){showSavedArtists();return}
   try{
-    state.items=await loadEntities(seeds.map(seed=>seed[0]));
+    const items=await loadEntities(seeds.map(seed=>seed[0]));
+    if(generation!==state.generation)return;
+    state.items=items;
     for(const item of state.items){const seed=seeds.find(row=>row[0]===item.id);if(seed&&(!item.title||item.title.startsWith('Q')))item.title=seed[1]}
     setStatus('בחר אמן לדוגמה או חפש שם חדש.');paint()
-  }catch(e){console.error(e);showSavedArtists()}
+  }catch(e){if(generation!==state.generation)return;console.error(e);showSavedArtists()}
 })();
-window.addEventListener('offline',()=>{if(state.controller)state.controller.abort();showSavedArtists()});
+window.addEventListener('offline',()=>{++state.generation;if(state.controller)state.controller.abort();showSavedArtists()});
 window.addEventListener('online',()=>setStatus('החיבור חזר. אפשר לחפש אמנים ולעדכן כרטיסים.'));
 let promptInstall=null;
 const installButton=$('install');
