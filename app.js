@@ -1,5 +1,5 @@
-import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
-import {hebrewWordSense} from './name-gloss.mjs';
+import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,missingDisplayedNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {hebrewWordSense,biographyOriginExcerpt} from './name-gloss.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -147,6 +147,21 @@ async function hebrewDictionaryGloss(word){
   definitionCache.set(key,promise);
   return promise;
 }
+const biographyOriginCache=new Map();
+async function biographyOriginNote(item,word){
+  if(item.lang!=='he'||!item.wikiTitle||!navigator.onLine)return null;
+  const key=item.id+':'+word;
+  if(biographyOriginCache.has(key))return biographyOriginCache.get(key);
+  const promise=(async()=>{
+    const url='https://he.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'extracts',explaintext:'1',titles:item.wikiTitle,format:'json',origin:'*'});
+    const data=await json(url);
+    const page=Object.values(data.query?.pages||{})[0];
+    const excerpt=biographyOriginExcerpt(page?.extract,word);
+    return excerpt?{excerpt,url:'https://he.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle)}:null;
+  })().catch(()=>null);
+  biographyOriginCache.set(key,promise);
+  return promise;
+}
 async function automaticDictionaryGloss(entry){
   const key='definition:'+entry.lang+':'+entry.matched;
   if(definitionCache.has(key))return definitionCache.get(key);
@@ -240,21 +255,31 @@ function structuredNameSection(item){
       return;
     }
     message.textContent='אלה חלקי השם שמופיעים בכרטיס ומתועדים בנפרד ב־Wikidata. פירוש לשוני מופיע רק כשיש לו מקור נוסף.';
-    for(const part of parts){
+    for(const part of [...parts,...missingDisplayedNameParts(item,parts)]){
       const block=el('div','dictionaryEntry');
       const heading=el('h4','',part.role+': '+part.word);heading.dir='auto';block.append(heading);
-      const known=hebrewNameGlossary[part.english.toLowerCase()];
+      const known=hebrewNameGlossary[part.english?.toLowerCase()];
       if(known){
         block.append(el('p','bio',known.text));
         const source=el('a','sub','מקור לפירוש: ויקימילון ↗');source.href=known.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
       }else if(part.role==='שם פרטי'&&/[\u0590-\u05ff]/.test(part.word)){
         hebrewDictionaryGloss(part.word).then(result=>{
-          if(!result||!block.isConnected)return;
+          if(!block.isConnected)return;
+          if(!result){block.append(el('p','muted','לא נמצא פירוש מאומת לשם הפרטי במקורות שנבדקו.'));return}
           block.append(el('p','bio','משמעות המילה בעברית: '+result.meaning+' אין בכך קביעה מדוע נבחר השם לאמן.'));
           const source=el('a','sub','מקור למשמעות המילה: ויקימילון ↗');source.href=result.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
         });
+      }else{
+        biographyOriginNote(item,part.word).then(result=>{
+          if(!block.isConnected)return;
+          if(!result){block.append(el('p','muted','לא נמצא פירוש מאומת לרכיב הזה במקורות שנבדקו.'));return}
+          block.append(el('p','muted','בערך על האמן בוויקיפדיה מוצגות אפשרויות למקור השם, ללא הכרעה ביניהן:'));
+          block.append(el('p','bio','״'+result.excerpt+'״'));
+          const source=el('a','sub','מקור: ויקיפדיה בעברית (CC BY-SA) ↗');source.href=result.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
+        });
       }
-      const a=el('a','sub','מקור לזיהוי חלק השם: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+part.id;a.target='_blank';a.rel='noopener noreferrer';block.append(a);
+      if(part.id){const a=el('a','sub','מקור לזיהוי חלק השם: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+part.id;a.target='_blank';a.rel='noopener noreferrer';block.append(a)}
+      else block.append(el('p','muted','זהו רכיב בשם המוצג; התפקיד שלו אינו מתועד בנפרד ב־Wikidata.'));
       section.append(block);
     }
   });
