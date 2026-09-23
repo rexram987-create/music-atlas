@@ -1,4 +1,4 @@
-import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -14,7 +14,7 @@ function wikidataSearch(q,lang,signal){return json('https://www.wikidata.org/w/a
 async function wikiSummary(title,lang,signal){if(!title)return null;try{return await json('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replaceAll(' ','_')),signal)}catch{return null}}
 async function entities(ids,signal){if(!ids.length)return {};const data=await json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbgetentities',ids:ids.join('|'),props:'labels|descriptions|sitelinks|claims',languages:'he|en|fr|ar',format:'json',origin:'*'}),signal);return data.entities||{}}
 function wikidataDate(entity,key){const time=entity?.claims?.[key]?.[0]?.mainsnak?.datavalue?.value?.time;if(!time)return null;const n=Number(time.match(/^[+-](\d+)/)?.[1]);if(!Number.isFinite(n))return null;return (time[0]==='-'?'−':'')+n}
-function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimNames(entity,'P1477'),stageNames:claimNames(entity,'P742'),nicknames:claimNames(entity,'P1449'),nativeNames:claimNames(entity,'P1559')}}
+function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimNames(entity,'P1477'),stageNames:claimNames(entity,'P742'),nicknames:claimNames(entity,'P1449'),nativeNames:claimNames(entity,'P1559'),nativeNameLanguages:nativeNameLanguages(entity),nameIds:nameClaimIds(entity)}}
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
@@ -97,6 +97,17 @@ function dictionaryVariants(word,lang){
   if(lang==='fr'&&word.toLowerCase()!==word)variants.push(word.toLowerCase());
   return [...new Set(variants)]
 }
+async function linkedNameParts(item){
+  if(item.nameParts)return item.nameParts;
+  const ids=[...new Set([...(item.nameIds?.given||[]),...(item.nameIds?.family||[])])].slice(0,8);
+  if(!ids.length||!navigator.onLine)return [];
+  try{
+    const parts=matchNameParts(item,await entities(ids));
+    item.nameParts=parts;
+    saveArtist(localStorage,item);
+    return parts;
+  }catch(e){console.warn('Name components unavailable',e);return []}
+}
 async function multilingualDictionaryLookup(word,lang){
   const key=lang+':'+word;
   if(wiktionaryCache.has(key))return wiktionaryCache.get(key);
@@ -162,9 +173,9 @@ function originalLanguageSection(item){
   const section=el('section','nameSection');
   section.append(el('h3','','מילון בשפת המקור'));
   const message=el('p','muted','בודק ערכים בוויקימילון הצרפתי או הערבי…');section.append(message);
-  Promise.all(choices.map(x=>multilingualDictionaryLookup(x.word,x.lang))).then(results=>{
+  Promise.all([Promise.all(choices.map(x=>multilingualDictionaryLookup(x.word,x.lang))),linkedNameParts(item)]).then(([results,parts])=>{
     if(!section.isConnected)return;
-    const entries=results.map((entry,index)=>entry&&({...entry,role:namePartRole(entry.word,entry.lang,choices[index].index,choices[index].total)})).filter(Boolean);
+    const entries=results.map((entry,index)=>entry&&({...entry,role:parts.find(part=>normalize(part.word)===normalize(entry.word))?.role||namePartRole(entry.word,entry.lang,choices[index].index,choices[index].total)})).filter(Boolean);
     const isFarid=/فريد/.test(arabic)&&/طرش/.test(arabic);
     message.textContent=entries.length?'רכיבי השם לפי הסדר שבו הם מופיעים בשם האמן. פירוש בעברית יופיע רק אם אומת:':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
     if(isFarid){
@@ -196,6 +207,33 @@ function originalLanguageSection(item){
     }
   });
   return section
+}
+function structuredNameSection(item){
+  if(!item.nameIds?.given?.length&&!item.nameIds?.family?.length)return null;
+  const section=el('section','nameSection');
+  section.append(el('h3','','רכיבי השם ומקורם'));
+  const message=el('p','muted','בודק את שמות האמן ב־Wikidata…');section.append(message);
+  linkedNameParts(item).then(parts=>{
+    if(!section.isConnected)return;
+    if(!parts.length){
+      const fallback=nameDictionaryLanguage(item)==='en'&&navigator.onLine?liveEtymologySection(item):null;
+      if(fallback)section.replaceWith(fallback);else section.remove();
+      return;
+    }
+    message.textContent='אלה חלקי השם שמופיעים בכרטיס ומתועדים בנפרד ב־Wikidata. פירוש לשוני מופיע רק כשיש לו מקור נוסף.';
+    for(const part of parts){
+      const block=el('div','dictionaryEntry');
+      const heading=el('h4','',part.role+': '+part.word);heading.dir='auto';block.append(heading);
+      const known=hebrewNameGlossary[part.english.toLowerCase()];
+      if(known){
+        block.append(el('p','bio',known.text));
+        const source=el('a','sub','מקור לפירוש: ויקימילון ↗');source.href=known.url;source.target='_blank';source.rel='noopener noreferrer';block.append(source);
+      }
+      const a=el('a','sub','מקור לזיהוי חלק השם: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+part.id;a.target='_blank';a.rel='noopener noreferrer';block.append(a);
+      section.append(block);
+    }
+  });
+  return section;
 }
 function liveEtymologySection(item){
   const section=el('section','nameSection');section.append(el('h3','','בדיקה במילון השמות המקוון'));
@@ -321,7 +359,15 @@ async function show(item){
   top.append(info);wrap.append(top);const names=nameSection(item);if(names)wrap.append(names);
   const meanings=nameMeaningsSection(item);if(meanings)wrap.append(meanings);
   if(item.savedAt&&!navigator.onLine)wrap.append(el('p','nameSection muted','בדיקת מילוני שמות דורשת חיבור לאינטרנט.'));
-  else{const original=originalLanguageSection(item);if(original)wrap.append(original);else if(nameDictionaryLanguage(item)==='en')wrap.append(liveEtymologySection(item))}
+  else if(!meanings){
+    const original=originalLanguageSection(item);
+    if(original)wrap.append(original);
+    else if(nameDictionaryLanguage(item)==='en'||nameDictionaryLanguage(item)==='he'){
+      const linked=structuredNameSection(item);
+      if(linked)wrap.append(linked);
+      else if(nameDictionaryLanguage(item)==='en')wrap.append(liveEtymologySection(item));
+    }
+  }
   const foot=el('div','profileFoot');
   const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
   for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}

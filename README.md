@@ -1,6 +1,6 @@
 # Music Atlas — האטלס המוזיקלי
 
-Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, biography cards, representative images, a small set of sourced name stories, and dictionary links for selected name components.
+Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, biography cards, representative images, a small set of sourced name stories, and automatic name-component identification where Wikidata records the given and family names. Sourced dictionary links and checked Hebrew explanations appear when available.
 
 ## Deployment
 
@@ -8,7 +8,7 @@ Import the GitHub repository into Vercel as an **Other** framework, with the rep
 
 ## APIs
 
-Browser requests use the public Wikidata Action API, Wikipedia REST page summaries, and Wiktionary. Search results are limited to people with musical occupations and musical groups. A singer who is also a composer appears in both filters. The app uses Wikidata entity IDs to keep curated name stories attached to the right person.
+Browser requests use the public Wikidata Action API, Wikipedia REST page summaries, and Wiktionary. Search results are limited to people with musical occupations and musical groups. A singer who is also a composer appears in both filters. Given and family names are matched to the displayed name before being shown, so a birth surname cannot be mistaken for a stage surname. A dictionary entry's meaning is not assumed to explain why a person received their name. The app uses Wikidata entity IDs to keep curated name stories attached to the right person.
 
 ## Offline use
 
@@ -20,6 +20,6 @@ Run `node --test` to check artist filtering, name labels, saved cards, and the s
 
 ## Future phases
 
-1. Expand sourced name explanations; add five notable songs or compositions with YouTube links.
+1. Broaden verified Hebrew name explanations; add five notable songs or compositions with YouTube links.
 2. Offline-first local playlists with export/import.
 3. Secure Google OAuth and YouTube Data API playlist creation, editing, and additions.
