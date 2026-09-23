@@ -96,9 +96,14 @@ async function multilingualDictionaryLookup(word,lang){
   if(wiktionaryCache.has(key))return wiktionaryCache.get(key);
   const promise=(async()=>{
     for(const variant of dictionaryVariants(word,lang)){
-      const url='https://'+lang+'.wiktionary.org/w/api.php?'+new URLSearchParams({action:'query',titles:variant,format:'json',origin:'*',redirects:'1'});
-      const data=await json(url);const page=Object.values(data.query?.pages||{})[0];
-      if(page&&page.missing===undefined)return {word,matched:page.title,lang,url:'https://'+lang+'.wiktionary.org/wiki/'+encodeURIComponent(page.title)};
+      // English Wiktionary also indexes original-script Arabic words missing from Arabic Wiktionary.
+      for(const site of lang==='ar'?['ar','en']:[lang]){
+        try{
+          const url='https://'+site+'.wiktionary.org/w/api.php?'+new URLSearchParams({action:'query',titles:variant,format:'json',origin:'*',redirects:'1'});
+          const data=await json(url);const page=Object.values(data.query?.pages||{})[0];
+          if(page&&page.missing===undefined)return {word,matched:page.title,lang,site,url:'https://'+site+'.wiktionary.org/wiki/'+encodeURIComponent(page.title)};
+        }catch(e){console.warn('Dictionary lookup failed',site,variant,e)}
+      }
     }
     return null
   })().catch(()=>null);
@@ -125,6 +130,7 @@ function originalLanguageSection(item){
       const block=el('div','dictionaryEntry');
       const heading=el('h4','',entry.word+' — '+(entry.lang==='fr'?'צרפתית':'ערבית'));heading.dir='auto';block.append(heading);
       if(entry.matched!==entry.word)block.append(el('p','muted','הערך המילוני שנמצא: '+entry.matched));
+      if(entry.site!==entry.lang)block.append(el('p','muted','הערך בשפת המקור נמצא בוויקימילון האנגלי.'));
       const gloss=verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
       block.append(el('p',gloss?'bio':'muted',gloss||'פירוש בעברית טרם אומת. אפשר לעיין בערך בשפת המקור.'));
       const a=el('a','sub','פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
