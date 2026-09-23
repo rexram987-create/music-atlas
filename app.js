@@ -238,7 +238,7 @@ function paint(){
   for(const item of list){
     const b=el('button','tile');b.type='button';b.append(imgNode(item.image,item.title));
     const box=el('div','content');box.append(el('strong','',item.title));
-    box.append(el('div','muted',typeLabel(item)+(item.description?' · '+item.description:'')));
+    box.append(el('div','muted',typeLabel(item)+(item.savedAt?' · כרטיס שמור, ייתכן שאינו עדכני':'')+(item.description?' · '+item.description:'')));
     b.append(box);b.addEventListener('click',()=>show(item));results.append(b)
   }
 }
@@ -258,7 +258,8 @@ async function loadEntities(ids,signal){
 function showSavedArtists(query=''){
   const saved=findSavedArtists(query,readSavedArtists(localStorage));
   state.items=saved;paint();
-  setStatus(saved.length?'אין חיבור למאגר. מוצגים '+saved.length+' כרטיסים שנשמרו בביקור קודם; ייתכן שהמידע בהם השתנה.':'אין חיבור למאגר. לא נשמרו כרטיסים תואמים במכשיר הזה. התחבר לאינטרנט ונסה שוב.');
+  const shown=visible().length;
+  setStatus(shown?'אין חיבור למאגר. מוצגים '+shown+' כרטיסים שנשמרו בביקור קודם; ייתכן שהמידע בהם השתנה.':saved.length?'יש כרטיסים שמורים, אך אין תוצאות בסינון זה. בחר ״הכול״ כדי לראותם.':'אין חיבור למאגר. לא נשמרו כרטיסים תואמים במכשיר הזה. התחבר לאינטרנט ונסה שוב.');
 }
 async function search(q){if(state.controller)state.controller.abort();if(!navigator.onLine){showSavedArtists(q);return}state.lastSearch=q;state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
   'מייקל גקסון':'Michael Jackson',
@@ -300,7 +301,7 @@ async function show(item){
   $('results').replaceChildren();const detail=$('detail');detail.replaceChildren();detail.classList.remove('hidden');
   setStatus('מציג את הכרטיס של '+item.title);
   const back=el('button','sub','← חזרה לתוצאות');back.type='button';back.style.marginBottom='14px';
-  back.addEventListener('click',()=>{detail.classList.add('hidden');paint();setStatus('בחר תוצאה לפתיחת הכרטיס.')});detail.append(back);
+  back.addEventListener('click',()=>{detail.classList.add('hidden');paint();setStatus(item.savedAt?'מוצגים כרטיסים שמורים מביקור קודם; ייתכן שהמידע השתנה.':'בחר תוצאה לפתיחת הכרטיס.')});detail.append(back);
   const wrap=el('article','profile'),top=el('div','profileTop'),info=el('div');
   top.append(imgNode(item.image,item.title));info.append(el('h2','',item.title));
   info.append(el('span','badge',typeLabel(item)));

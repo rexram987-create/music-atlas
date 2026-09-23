@@ -20,10 +20,12 @@ test('books, albums and parks named for an artist are excluded', () => {
   for(const kind of ['Q571','Q482994','Q22698']){
     assert.deepEqual(artistTypes(entity('Qother',[kind],[],'work about a French singer')),[]);
   }
+  assert.deepEqual(artistTypes(entity('Q2491498',['Q105756498'],[],'type of pop band')),[]);
 });
 
 test('a musical group and a musician without singer occupation remain discoverable', () => {
   assert.deepEqual(artistTypes(entity('Q1299',['Q215380'],[],'English rock band')),['band']);
+  assert.deepEqual(artistTypes(entity('Q2874790',['Q2088357'],[],'musical ensemble')),['band']);
   assert.deepEqual(artistTypes(entity('Qmusician',['Q5'],['Q639669'],'jazz musician')),['all']);
 });
 

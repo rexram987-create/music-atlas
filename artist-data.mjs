@@ -1,4 +1,4 @@
-const groupKinds=new Set(['Q215380','Q5741069','Q105756498']);
+const groupKinds=new Set(['Q215380','Q5741069','Q2088357']);
 const singerJobs=new Set(['Q177220']);
 const composerJobs=new Set(['Q36834']);
 const musicianJobs=new Set(['Q639669']);
