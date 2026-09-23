@@ -1,7 +1,7 @@
 import {artistTypes,matchesFilter,namePartRole,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 
 const $=id=>document.getElementById(id);
-const state={filter:'all',items:[],controller:null};
+const state={filter:'all',items:[],controller:null,lastSearch:''};
 const seeds=[['Q254','מוצרט'],['Q303','אלביס פרסלי'],['Q1299','הביטלס'],['Q255','בטהובן'],['Q509660','אריק איינשטיין'],['Q15862','קווין']];
 const typeLabels={singer:'זמר/ת',band:'להקה',composer:'מלחין/ה',all:'מוזיקאי/ת'};
 const typeLabel=item=>item.types.map(type=>typeLabels[type]).join(' · ');
@@ -260,7 +260,7 @@ function showSavedArtists(query=''){
   state.items=saved;paint();
   setStatus(saved.length?'אין חיבור למאגר. מוצגים '+saved.length+' כרטיסים שנשמרו בביקור קודם; ייתכן שהמידע בהם השתנה.':'אין חיבור למאגר. לא נשמרו כרטיסים תואמים במכשיר הזה. התחבר לאינטרנט ונסה שוב.');
 }
-async function search(q){if(state.controller)state.controller.abort();if(!navigator.onLine){showSavedArtists(q);return}state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
+async function search(q){if(state.controller)state.controller.abort();if(!navigator.onLine){showSavedArtists(q);return}state.lastSearch=q;state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
   'מייקל גקסון':'Michael Jackson',
   'מייקל גקסן':'Michael Jackson',
   'פול מקרטני':'Paul McCartney',
@@ -292,11 +292,11 @@ if(!found.size&&responses.every(response=>response.status==='rejected'))throw Er
 const ids=[...found.keys()].slice(0,50);
 if(!ids.length){state.items=[];setStatus('לא נמצאו תוצאות. נסה כתיב אחר או שם באנגלית.');paint();return}
 state.items=await loadEntities(ids,signal);
-setStatus(state.items.length?'נמצאו '+state.items.length+' אמנים. בחר אמן כדי לפתוח כרטיס.':'לא נמצאו אמנים בשם הזה. נסה כתיב אחר או שם באנגלית.');
+setStatus(state.items.length===1?'נמצא אמן אחד. בחר בו כדי לפתוח כרטיס.':state.items.length?'נמצאו '+state.items.length+' אמנים. בחר אמן כדי לפתוח כרטיס.':'לא נמצאו אמנים בשם הזה. נסה כתיב אחר או שם באנגלית.');
 paint()
 }catch(e){if(e.name==='AbortError')return;console.error(e);showSavedArtists(q)}}
 async function show(item){
-  if(!item.savedAt)saveArtist(localStorage,item);
+  if(!item.savedAt)saveArtist(localStorage,{...item,searchTerms:state.lastSearch?[state.lastSearch]:[]});
   $('results').replaceChildren();const detail=$('detail');detail.replaceChildren();detail.classList.remove('hidden');
   setStatus('מציג את הכרטיס של '+item.title);
   const back=el('button','sub','← חזרה לתוצאות');back.type='button';back.style.marginBottom='14px';

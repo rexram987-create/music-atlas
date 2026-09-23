@@ -45,6 +45,11 @@ test('saved artists can be found offline by an alternate language label', () => 
   assert.deepEqual(findSavedArtists('Mozart',saved),[]);
 });
 
+test('an artist opened from a Hebrew spelling remains searchable offline by that spelling', () => {
+  const saved=[{id:'Q449',title:"ז'ורז' ברסנס",englishTitle:'Georges Brassens',searchTerms:['ג׳ורג׳ ברסאנס']}];
+  assert.equal(findSavedArtists('ג׳ורג׳ ברסאנס',saved)[0].id,'Q449');
+});
+
 test('corrupt offline storage does not prevent the app from loading', () => {
   const storage={getItem:()=>'{bad json'};
   assert.deepEqual(readSavedArtists(storage),[]);

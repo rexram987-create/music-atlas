@@ -44,8 +44,11 @@ export function readSavedArtists(storage){
 
 export function saveArtist(storage,item){
   try{
-    const saved=readSavedArtists(storage).filter(artist=>artist.id!==item.id);
-    storage.setItem(savedKey,JSON.stringify([{...item,savedAt:Date.now()},...saved].slice(0,20)));
+    const existing=readSavedArtists(storage);
+    const old=existing.find(artist=>artist.id===item.id);
+    const searchTerms=[...new Set([...(old?.searchTerms||[]),...(item.searchTerms||[])].filter(Boolean))];
+    const saved=existing.filter(artist=>artist.id!==item.id);
+    storage.setItem(savedKey,JSON.stringify([{...item,searchTerms,savedAt:Date.now()},...saved].slice(0,20)));
   }catch{/* Storage may be disabled or full; online profiles still work. */}
 }
 
@@ -53,5 +56,5 @@ const normalized=value=>(value||'').toLocaleLowerCase().normalize('NFKD').replac
 export function findSavedArtists(query,saved){
   const needle=normalized(query);
   if(!needle)return saved;
-  return saved.filter(item=>[item.title,item.englishTitle,item.frenchTitle,item.arabicTitle].some(label=>normalized(label).includes(needle)));
+  return saved.filter(item=>[item.title,item.englishTitle,item.frenchTitle,item.arabicTitle,...(item.searchTerms||[])].some(label=>normalized(label).includes(needle)));
 }
