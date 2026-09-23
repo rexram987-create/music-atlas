@@ -35,6 +35,16 @@ export function namePartRole(word,lang,index,total){
   return 'רכיב השם';
 }
 
+export function nameDictionaryLanguage(item){
+  const native=item.nativeNames||[];
+  const hebrew=native.some(name=>/[\u0590-\u05ff]/.test(name));
+  const arabic=native.some(name=>/[\u0600-\u06ff]/.test(name));
+  if(hebrew)return 'he';
+  if(arabic&&/[\u0600-\u06ff]/.test(item.arabicTitle||''))return 'ar';
+  if(item.id==='Q1631'||/^(georges brassens)$/i.test(item.frenchTitle||''))return 'fr';
+  return 'en';
+}
+
 export function readSavedArtists(storage){
   try{
     const items=JSON.parse(storage.getItem(savedKey)||'[]');

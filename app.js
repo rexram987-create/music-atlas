@@ -1,4 +1,4 @@
-import {artistTypes,matchesFilter,namePartRole,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -29,6 +29,10 @@ const nameStories={
 };
 // Etymology is linked to a verified artist ID: never infer name meanings from arbitrary search results.
 const verifiedNameMeanings={
+  Q509660:[
+    {label:'אריק — שם פרטי',text:'אריק הוא צורת חיבה עברית של השם אריה, שפירושו בעל החיים אריה. זהו מקור לשוני של השם, ולא הסבר מאומת לשאלה מדוע נקרא כך הזמר.',source:'Behind the Name — Arieh',url:'https://www.behindthename.com/name/arieh'},
+    {label:'איינשטיין — שם משפחה',text:'זהו שם משפחה שמקורו בגרמנית. במילון מתועדים שני מקורות אפשריים: שם שנגזר משמו של מקום מוקף אבן, או שם המורכב מן המילים ״אחת״ ו״אבן״. אין בכך קביעה איזה מקור חל על משפחתו של הזמר.',source:'ויקימילון — Einstein',url:'https://en.wiktionary.org/wiki/Einstein#German'}
+  ],
   Q5383:[
     {label:'David — דייוויד',text:'דָּוִד הוא שם עברי, שמקובל לפרשו ״אהוב״ או ״ידיד״. זהו שמו הפרטי של בואי גם מלידה, לא שם במה שהומצא עבורו.',source:'Behind the Name — David',url:'https://www.behindthename.com/name/david'},
     {label:'Bowie — בואי',text:'בשם הבמה של הזמר, Bowie מתייחס לסכין הבואי, שנקראה על שם ג׳ים בואי. אין לפרש את Bowie אוטומטית כמשמעות של שם משפחה תורשתי במקרה שלו.',source:'האתר הרשמי של דייוויד בואי',url:'https://www.davidbowie.com/2015/2015/09/16/happy-50th-birthday-david-bowie'}
@@ -144,12 +148,13 @@ async function automaticDictionaryGloss(entry){
 }
 function originalLanguageSection(item){
   const choices=[];
-  if(item.id==='Q1631'||/^(georges brassens)$/i.test(item.frenchTitle||'')){
+  const language=nameDictionaryLanguage(item);
+  if(language==='fr'){
     const words=(item.frenchTitle||'').split(/\s+/).filter(Boolean).slice(0,3);
     words.forEach((word,index)=>choices.push({word,lang:'fr',index,total:words.length}));
   }
   const arabic=(item.arabicTitle||'').trim();
-  if(!choices.length&&/[\u0600-\u06ff]/.test(arabic)){
+  if(!choices.length&&language==='ar'&&/[\u0600-\u06ff]/.test(arabic)){
     const words=arabic.split(/\s+/).filter(word=>word&&!['ال','آل'].includes(word)).slice(0,4);
     words.forEach((word,index)=>choices.push({word,lang:'ar',index,total:words.length}));
   }
@@ -218,16 +223,17 @@ function liveEtymologySection(item){
 }
 function claimText(entity,key){return (entity?.claims?.[key]||[]).map(c=>c.mainsnak?.datavalue?.value).filter(v=>typeof v==='string'&&v.trim()).filter((v,i,a)=>a.indexOf(v)===i)}
 function nameSection(item){
-  const section=el('section','nameSection');
-  section.append(el('h3','','מקור השם ושמות נוספים'));
   const story=nameStories[item.id];
+  const nativeNames=(item.nativeNames||[]).filter(name=>normalize(name)!==normalize(item.title));
+  if(!story&&!item.birthNames?.length&&!item.stageNames?.length&&!item.nicknames?.length&&!nativeNames.length)return null;
+  const section=el('section','nameSection');
+  section.append(el('h3','',story?'מקור השם ושמות נוספים':'שמות נוספים'));
   if(story){section.append(el('p','bio',story.text));const a=el('a','sub','מקור: '+story.source+' ↗');a.href=story.url;a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
   if(item.birthNames?.length){section.append(el('p','fact','שם בלידה: '+item.birthNames.join(' · ')))}
   if(item.stageNames?.length){section.append(el('p','fact','שמות במה מתועדים: '+item.stageNames.join(' · ')))}
   if(item.nicknames?.length){section.append(el('p','fact','כינויים מתועדים: '+item.nicknames.join(' · ')))}
-  if(item.nativeNames?.length){section.append(el('p','fact','שם בשפת המקור: '+item.nativeNames.join(' · ')))}
-  if(item.birthNames?.length||item.stageNames?.length||item.nicknames?.length||item.nativeNames?.length){const a=el('a','small','מקור לשמות המתועדים: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+encodeURIComponent(item.id);a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
-  if(!story)section.append(el('p','muted','הסיפור שמאחורי השם טרם אומת במקורות. שמות נוספים מוצגים אוטומטית כאשר הם מתועדים ב־Wikidata.'));
+  if(nativeNames.length){section.append(el('p','fact','שם בשפת המקור: '+nativeNames.join(' · ')))}
+  if(item.birthNames?.length||item.stageNames?.length||item.nicknames?.length||nativeNames.length){const a=el('a','small','מקור לשמות המתועדים: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+encodeURIComponent(item.id);a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
   return section
 }
 function visible(){return state.items.filter(item=>matchesFilter(item,state.filter))}
@@ -313,10 +319,10 @@ async function show(item){
   else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));
   if(item.description)info.append(el('p','muted',item.description));
   info.append(el('p','bio',item.summary||'תקציר ויקיפדיה אינו זמין. ניתן לעיין במקור כשיש חיבור לאינטרנט.'));
-  top.append(info);wrap.append(top);wrap.append(nameSection(item));
+  top.append(info);wrap.append(top);const names=nameSection(item);if(names)wrap.append(names);
   const meanings=nameMeaningsSection(item);if(meanings)wrap.append(meanings);
   if(item.savedAt&&!navigator.onLine)wrap.append(el('p','nameSection muted','בדיקת מילוני שמות דורשת חיבור לאינטרנט.'));
-  else{const original=originalLanguageSection(item);if(original)wrap.append(original);else wrap.append(liveEtymologySection(item))}
+  else{const original=originalLanguageSection(item);if(original)wrap.append(original);else if(nameDictionaryLanguage(item)==='en')wrap.append(liveEtymologySection(item))}
   const foot=el('div','profileFoot');
   const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
   for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}

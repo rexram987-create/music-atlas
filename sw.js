@@ -1,4 +1,4 @@
-const CACHE='music-atlas-shell-v26';
+const CACHE='music-atlas-shell-v27';
 const SHELL=['/','/index.html','/app.js','/artist-data.mjs','/manifest.webmanifest','/icon.svg','/icon-192.png','/icon-512.png'];
 
 self.addEventListener('install',event=>{
