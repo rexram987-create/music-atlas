@@ -1,6 +1,6 @@
 # Music Atlas — האטלס המוזיקלי
 
-Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. Phase 1 includes multilingual search, dynamic biography cards, representative images, and an installable app shell.
+Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, biography cards, representative images, a small set of sourced name stories, and dictionary links for selected name components.
 
 ## Deployment
 
@@ -8,10 +8,18 @@ Import the GitHub repository into Vercel as an **Other** framework, with the rep
 
 ## APIs
 
-Browser requests use the public Wikidata Action API and Wikipedia REST page summaries. Information is linked back to the primary pages. In this first phase, song rankings, name etymology, and YouTube playlists are intentionally not implemented; they belong to later phases.
+Browser requests use the public Wikidata Action API, Wikipedia REST page summaries, and Wiktionary. Search results are limited to people with musical occupations and musical groups. A singer who is also a composer appears in both filters. The app uses Wikidata entity IDs to keep curated name stories attached to the right person.
+
+## Offline use
+
+The service worker stores the app shell for offline launch. Opening a profile saves up to 20 recently viewed artist cards in the device's local storage. On a later offline visit, those cards can be opened and searched by their stored names; they are marked as saved information that may have changed. New artists, images not already available to the browser, and live dictionary lookups need an internet connection. Browser storage can be cleared by the user or the operating system.
+
+## Checks
+
+Run `node --test` to check artist filtering, name labels, saved cards, and the service worker shell cache. No build step is required.
 
 ## Future phases
 
-1. Name etymology with sourced facts; five notable songs or compositions with YouTube links.
+1. Expand sourced name explanations; add five notable songs or compositions with YouTube links.
 2. Offline-first local playlists with export/import.
 3. Secure Google OAuth and YouTube Data API playlist creation, editing, and additions.

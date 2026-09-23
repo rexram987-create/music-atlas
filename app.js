@@ -1,18 +1,20 @@
+import {artistTypes,matchesFilter,namePartRole,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+
 const $=id=>document.getElementById(id);
-const state={filter:'all',items:[],controller:null};
-const seeds=[['Q254','מוצרט','composer'],['Q303','אלביס פרסלי','singer'],['Q1299','הביטלס','band'],['Q255','בטהובן','composer'],['Q45945','אריק איינשטיין','singer'],['Q15862','קווין','band']];
-const typeLabels={singer:'זמר/ת',band:'להקה',composer:'מלחין/ה',all:'אמן/ית'};
+const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
+const seeds=[['Q254','מוצרט'],['Q303','אלביס פרסלי'],['Q1299','הביטלס'],['Q255','בטהובן'],['Q509660','אריק איינשטיין'],['Q15862','קווין']];
+const typeLabels={singer:'זמר/ת',band:'להקה',composer:'מלחין/ה',all:'מוזיקאי/ת'};
+const typeLabel=item=>item.types.map(type=>typeLabels[type]).join(' · ');
 const normalize=s=>(s||'').toLocaleLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').trim();
 const setStatus=message=>{$('status').textContent=message};
 const el=(tag,cl,text)=>{const node=document.createElement(tag);if(cl)node.className=cl;if(text!=null)node.textContent=text;return node};
 function imgNode(src,alt){if(!src){return el('div','ph','♫')}const img=el('img');img.src=src;img.alt=alt||'';img.loading='lazy';img.referrerPolicy='no-referrer';img.onerror=()=>img.replaceWith(el('div','ph','♫'));return img}
-function identifyType(desc='',claims={}){const s=normalize(desc);const occupations=(claims.P106||[]).map(x=>x.mainsnak?.datavalue?.value?.id);if(s.includes('band')||s.includes('להקה')||s.includes('musical group')||(claims.P31||[]).some(x=>['Q215380','Q5741069','Q105756498'].includes(x.mainsnak?.datavalue?.value?.id)))return 'band';if(s.includes('composer')||s.includes('מלחין')||occupations.includes('Q36834'))return 'composer';if(s.includes('singer')||s.includes('זמר')||occupations.includes('Q177220'))return 'singer';return 'all'}
 async function json(url,signal){const r=await fetch(url,{signal,headers:{Accept:'application/json'}});if(!r.ok)throw Error('שגיאת שירות '+r.status);return r.json()}
 function wikidataSearch(q,lang,signal){return json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbsearchentities',search:q,language:lang,uselang:'he',type:'item',format:'json',origin:'*',limit:'15'}),signal)}
 async function wikiSummary(title,lang,signal){if(!title)return null;try{return await json('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replaceAll(' ','_')),signal)}catch{return null}}
 async function entities(ids,signal){if(!ids.length)return {};const data=await json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbgetentities',ids:ids.join('|'),props:'labels|descriptions|sitelinks|claims',languages:'he|en|fr|ar',format:'json',origin:'*'}),signal);return data.entities||{}}
 function wikidataDate(entity,key){const time=entity?.claims?.[key]?.[0]?.mainsnak?.datavalue?.value?.time;if(!time)return null;const n=Number(time.match(/^[+-](\d+)/)?.[1]);if(!Number.isFinite(n))return null;return (time[0]==='-'?'−':'')+n}
-function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',type:identifyType((entity.descriptions?.he?.value||'')+' '+(entity.descriptions?.en?.value||''),entity.claims),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimText(entity,'P1477'),stageNames:claimText(entity,'P742'),nicknames:claimText(entity,'P1449'),nativeNames:claimText(entity,'P1559')}}
+function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimText(entity,'P1477'),stageNames:claimText(entity,'P742'),nicknames:claimText(entity,'P1449'),nativeNames:claimText(entity,'P1559')}}
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
@@ -143,11 +145,13 @@ async function automaticDictionaryGloss(entry){
 function originalLanguageSection(item){
   const choices=[];
   if(item.id==='Q1631'||/^(georges brassens)$/i.test(item.frenchTitle||'')){
-    for(const word of (item.frenchTitle||'').split(/\s+/).filter(Boolean).slice(0,3))choices.push({word,lang:'fr'});
+    const words=(item.frenchTitle||'').split(/\s+/).filter(Boolean).slice(0,3);
+    words.forEach((word,index)=>choices.push({word,lang:'fr',index,total:words.length}));
   }
   const arabic=(item.arabicTitle||'').trim();
-  if(/[\u0600-\u06ff]/.test(arabic)){
-    for(const word of arabic.split(/\s+/).filter(Boolean).slice(0,4))if(!['ال','آل'].includes(word))choices.push({word,lang:'ar'});
+  if(!choices.length&&/[\u0600-\u06ff]/.test(arabic)){
+    const words=arabic.split(/\s+/).filter(word=>word&&!['ال','آل'].includes(word)).slice(0,4);
+    words.forEach((word,index)=>choices.push({word,lang:'ar',index,total:words.length}));
   }
   if(!choices.length)return null;
   const section=el('section','nameSection');
@@ -155,19 +159,18 @@ function originalLanguageSection(item){
   const message=el('p','muted','בודק ערכים בוויקימילון הצרפתי או הערבי…');section.append(message);
   Promise.all(choices.map(x=>multilingualDictionaryLookup(x.word,x.lang))).then(results=>{
     if(!section.isConnected)return;
-    const entries=results.filter(Boolean);
+    const entries=results.map((entry,index)=>entry&&({...entry,role:namePartRole(entry.word,entry.lang,choices[index].index,choices[index].total)})).filter(Boolean);
     const isFarid=/فريد/.test(arabic)&&/طرش/.test(arabic);
-    message.textContent=entries.length?'פירוש רכיבי השם בעברית, לפי הסדר שבו הם מופיעים בשם האמן:':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
+    message.textContent=entries.length?'רכיבי השם לפי הסדר שבו הם מופיעים בשם האמן. פירוש בעברית יופיע רק אם אומת:':'לא נמצאו ערכים תואמים בשפת המקור בבדיקה זו.';
     if(isFarid){
       const intro=el('p','bio','שמו של האמן מורכב משם פרטי — פריד — ומשם משפחה — אל־אטרש. אלה פירושים לשוניים של השמות, ולא תיאור של תכונותיו או מצבו הרפואי.');
       section.append(intro);
     }
     for(const entry of entries){
       const block=el('div','dictionaryEntry');
-      const isSurname=entry.lang==='ar'&&entry.word.startsWith('ال');
-      const isGiven=entry.lang==='ar'&&!isSurname;
-      const role=isSurname?'שם משפחה':isGiven?'שם פרטי':entry.lang==='fr'&&entry.word.toLowerCase()==='piaf'?'שם במה / כינוי':'שם פרטי';
-      const heading=el('h4','',role+': '+entry.word);heading.dir='auto';block.append(heading);
+      const isSurname=entry.role==='שם משפחה';
+      const isGiven=entry.role==='שם פרטי';
+      const heading=el('h4','',entry.role+': '+entry.word);heading.dir='auto';block.append(heading);
       const key=entry.lang==='ar'?entry.matched.replace(/^ال/,''):entry.matched.toLowerCase();
       const gloss=verifiedMultilingualGlosses[entry.lang]?.[key]||verifiedMultilingualGlosses[entry.lang]?.[entry.matched.toLowerCase()];
       if(gloss){
@@ -184,7 +187,7 @@ function originalLanguageSection(item){
       }
       if(entry.matched!==entry.word)block.append(el('p','muted','לצורך הבדיקה המילונית חיפשנו גם את הצורה '+entry.matched+' ללא ה״א הידיעה הערבית „אל־”.'));
       if(entry.site!==entry.lang)block.append(el('p','muted','הערך נמצא בוויקימילון האנגלי בכתיב הערבי המקורי.'));
-      const a=el('a','sub','מקור לפירוש: ויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
+      const a=el('a','sub',gloss?'מקור לפירוש: ויקימילון ↗':'פתיחת הערך בוויקימילון ↗');a.href=entry.url;a.target='_blank';a.rel='noopener noreferrer';block.append(a);section.append(block)
     }
   });
   return section
@@ -227,10 +230,38 @@ function nameSection(item){
   if(!story)section.append(el('p','muted','הסיפור שמאחורי השם טרם אומת במקורות. שמות נוספים מוצגים אוטומטית כאשר הם מתועדים ב־Wikidata.'));
   return section
 }
-function visible(){return state.items.filter(i=>state.filter==='all'||i.type===state.filter)}
-function paint(){const results=$('results');results.replaceChildren();$('detail').classList.add('hidden');const list=visible();if(!list.length){results.append(el('div','empty','לא נמצאו תוצאות בסינון זה. אפשר לחזור ל״הכול״ או לנסות חיפוש אחר.'));return}for(const item of list){const b=el('button','tile');b.type='button';b.append(imgNode(item.image,item.title));const box=el('div','content');box.append(el('strong','',item.title));box.append(el('div','muted',(typeLabels[item.type]||'אמן/ית')+(item.description?' · '+item.description:'')));b.append(box);b.addEventListener('click',()=>show(item));results.append(b)}}
-async function loadEntities(ids,signal){const map=await entities(ids,signal);const items=ids.map(id=>map[id]).filter(e=>e&&!e.missing).map(e=>itemFromEntity(e));await Promise.all(items.map(async i=>{if(!i.wikiTitle)return;const summary=await wikiSummary(i.wikiTitle,i.lang,signal);i.image=summary?.thumbnail?.source||summary?.originalimage?.source;i.summary=summary?.extract;i.page=summary?.content_urls?.desktop?.page}));return items}
-async function search(q){if(state.controller)state.controller.abort();state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
+function visible(){return state.items.filter(item=>matchesFilter(item,state.filter))}
+function paint(){
+  const results=$('results');results.replaceChildren();$('detail').classList.add('hidden');
+  const list=visible();
+  if(!list.length){results.append(el('div','empty','לא נמצאו תוצאות בסינון זה. אפשר לחזור ל״הכול״ או לנסות חיפוש אחר.'));return}
+  for(const item of list){
+    const b=el('button','tile');b.type='button';b.append(imgNode(item.image,item.title));
+    const box=el('div','content');box.append(el('strong','',item.title));
+    box.append(el('div','muted',typeLabel(item)+(item.savedAt?' · כרטיס שמור, ייתכן שאינו עדכני':'')+(item.description?' · '+item.description:'')));
+    b.append(box);b.addEventListener('click',()=>show(item));results.append(b)
+  }
+}
+async function loadEntities(ids,signal){
+  const batches=[];for(let i=0;i<ids.length;i+=25)batches.push(ids.slice(i,i+25));
+  const maps=await Promise.all(batches.map(batch=>entities(batch,signal)));
+  const map=Object.assign({},...maps);
+  const items=ids.map(id=>map[id]).filter(entity=>entity&&!entity.missing&&artistTypes(entity).length).map(entity=>itemFromEntity(entity));
+  await Promise.all(items.map(async item=>{
+    if(!item.wikiTitle)return;
+    const summary=await wikiSummary(item.wikiTitle,item.lang,signal);
+    item.image=summary?.thumbnail?.source||summary?.originalimage?.source;
+    item.summary=summary?.extract;item.page=summary?.content_urls?.desktop?.page
+  }));
+  return items
+}
+function showSavedArtists(query=''){
+  const saved=findSavedArtists(query,readSavedArtists(localStorage));
+  state.items=saved;paint();
+  const shown=visible().length;
+  setStatus(shown?'אין חיבור למאגר. מוצגים '+shown+' כרטיסים שנשמרו בביקור קודם; ייתכן שהמידע בהם השתנה.':saved.length?'יש כרטיסים שמורים, אך אין תוצאות בסינון זה. בחר ״הכול״ כדי לראותם.':'אין חיבור למאגר. לא נשמרו כרטיסים תואמים במכשיר הזה. התחבר לאינטרנט ונסה שוב.');
+}
+async function search(q){if(state.controller)state.controller.abort();const generation=++state.generation;if(!navigator.onLine){showSavedArtists(q);return}state.lastSearch=q;state.controller=new AbortController();const signal=state.controller.signal;setStatus('מחפש אמנים במאגרי הידע…');$('results').replaceChildren();$('detail').classList.add('hidden');try{const aliases={
   'מייקל גקסון':'Michael Jackson',
   'מייקל גקסן':'Michael Jackson',
   'פול מקרטני':'Paul McCartney',
@@ -256,13 +287,56 @@ const variants=[q];
 if(alias)variants.push(alias);
 const queries=variants.flatMap(term=>[wikidataSearch(term,'he',signal),wikidataSearch(term,'en',signal)]);
 const responses=await Promise.allSettled(queries);
+if(generation!==state.generation)return;
 const found=new Map();
 for(const response of responses)if(response.status==='fulfilled')for(const result of response.value.search||[])if(!found.has(result.id))found.set(result.id,result);
-if(!found.size&&responses.every(response=>response.status==='rejected'))throw Error('שירות החיפוש אינו זמין');const ids=[...found.keys()].slice(0,18);if(!ids.length){state.items=[];setStatus('לא נמצאו תוצאות. נסה כתיב אחר או שם באנגלית.');paint();return}state.items=await loadEntities(ids,signal);setStatus('נמצאו '+state.items.length+' תוצאות. בחר אמן כדי לפתוח כרטיס.');paint()}catch(e){if(e.name==='AbortError')return;setStatus('לא הצלחנו להשלים את החיפוש. בדוק חיבור לאינטרנט ונסה שוב.');console.error(e)}}
-async function show(item){$('results').replaceChildren();const detail=$('detail');detail.replaceChildren();detail.classList.remove('hidden');setStatus('מציג את הכרטיס של '+item.title);const back=el('button','sub','← חזרה לתוצאות');back.type='button';back.style.marginBottom='14px';back.addEventListener('click',()=>{detail.classList.add('hidden');paint();setStatus('בחר תוצאה לפתיחת הכרטיס.')});detail.append(back);const wrap=el('article','profile'),top=el('div','profileTop'),info=el('div');top.append(imgNode(item.image,item.title));info.append(el('h2','',item.title));info.append(el('span','badge',typeLabels[item.type]||'אמן/ית'));if(item.born)info.append(el('div','fact','שנות חיים: '+item.born+(item.died?'–'+item.died:'–')));else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));if(item.description)info.append(el('p','muted',item.description));const bio=el('p','bio',item.summary||'תקציר ויקיפדיה אינו זמין בשפה שנבחרה. ניתן לעיין במקור.');info.append(bio);top.append(info);wrap.append(top);wrap.append(nameSection(item));const meanings=nameMeaningsSection(item);if(meanings)wrap.append(meanings);wrap.append(liveEtymologySection(item));const original=originalLanguageSection(item);if(original)wrap.append(original);const foot=el('div','profileFoot');const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}wrap.append(foot);detail.append(wrap)}
+if(!found.size&&responses.every(response=>response.status==='rejected'))throw Error('שירות החיפוש אינו זמין');
+const ids=[...found.keys()].slice(0,50);
+if(!ids.length){state.items=[];setStatus('לא נמצאו תוצאות. נסה כתיב אחר או שם באנגלית.');paint();return}
+const items=await loadEntities(ids,signal);
+if(generation!==state.generation)return;
+state.items=items;
+setStatus(state.items.length===1?'נמצא אמן אחד. בחר בו כדי לפתוח כרטיס.':state.items.length?'נמצאו '+state.items.length+' אמנים. בחר אמן כדי לפתוח כרטיס.':'לא נמצאו אמנים בשם הזה. נסה כתיב אחר או שם באנגלית.');
+paint()
+}catch(e){if(e.name==='AbortError'||generation!==state.generation)return;console.error(e);showSavedArtists(q)}}
+async function show(item){
+  if(!item.savedAt)saveArtist(localStorage,{...item,searchTerms:state.lastSearch?[state.lastSearch]:[]});
+  $('results').replaceChildren();const detail=$('detail');detail.replaceChildren();detail.classList.remove('hidden');
+  setStatus('מציג את הכרטיס של '+item.title);
+  const back=el('button','sub','← חזרה לתוצאות');back.type='button';back.style.marginBottom='14px';
+  back.addEventListener('click',()=>{detail.classList.add('hidden');paint();setStatus(item.savedAt?'מוצגים כרטיסים שמורים מביקור קודם; ייתכן שהמידע השתנה.':'בחר תוצאה לפתיחת הכרטיס.')});detail.append(back);
+  const wrap=el('article','profile'),top=el('div','profileTop'),info=el('div');
+  top.append(imgNode(item.image,item.title));info.append(el('h2','',item.title));
+  info.append(el('span','badge',typeLabel(item)));
+  if(item.savedAt)info.append(el('p','muted','כרטיס שמור מביקור קודם · נשמר ב־'+new Date(item.savedAt).toLocaleDateString('he-IL')+'. ייתכן שהמידע השתנה מאז.'));
+  if(item.born)info.append(el('div','fact','שנות חיים: '+item.born+(item.died?'–'+item.died:'–')));
+  else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));
+  if(item.description)info.append(el('p','muted',item.description));
+  info.append(el('p','bio',item.summary||'תקציר ויקיפדיה אינו זמין. ניתן לעיין במקור כשיש חיבור לאינטרנט.'));
+  top.append(info);wrap.append(top);wrap.append(nameSection(item));
+  const meanings=nameMeaningsSection(item);if(meanings)wrap.append(meanings);
+  if(item.savedAt&&!navigator.onLine)wrap.append(el('p','nameSection muted','בדיקת מילוני שמות דורשת חיבור לאינטרנט.'));
+  else{const original=originalLanguageSection(item);if(original)wrap.append(original);else wrap.append(liveEtymologySection(item))}
+  const foot=el('div','profileFoot');
+  const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
+  for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}
+  wrap.append(foot);detail.append(wrap)
+}
 $('searchForm').addEventListener('submit',e=>{e.preventDefault();const q=$('searchInput').value.trim();if(q.length>=2)search(q)});
 document.querySelectorAll('.tab').forEach(b=>b.addEventListener('click',()=>{state.filter=b.dataset.filter;document.querySelectorAll('.tab').forEach(x=>{x.classList.toggle('active',x===b);x.setAttribute('aria-pressed',String(x===b))});paint()}));
-(async()=>{try{state.items=await loadEntities(seeds.map(x=>x[0]));for(let i=0;i<state.items.length;i++){const seed=seeds.find(s=>s[0]===state.items[i].id);if(seed){state.items[i].type=seed[2];if(!state.items[i].title||state.items[i].title.startsWith('Q'))state.items[i].title=seed[1]}}setStatus('בחר אמן לדוגמה או חפש שם חדש.');paint()}catch(e){console.error(e);setStatus('אפשר לחפש שם אמן גם אם רשימת הדוגמאות לא נטענה.')}})();
+(async()=>{
+  const generation=state.generation;
+  if(!navigator.onLine){showSavedArtists();return}
+  try{
+    const items=await loadEntities(seeds.map(seed=>seed[0]));
+    if(generation!==state.generation)return;
+    state.items=items;
+    for(const item of state.items){const seed=seeds.find(row=>row[0]===item.id);if(seed&&(!item.title||item.title.startsWith('Q')))item.title=seed[1]}
+    setStatus('בחר אמן לדוגמה או חפש שם חדש.');paint()
+  }catch(e){if(generation!==state.generation)return;console.error(e);showSavedArtists()}
+})();
+window.addEventListener('offline',()=>{++state.generation;if(state.controller)state.controller.abort();showSavedArtists()});
+window.addEventListener('online',()=>setStatus('החיבור חזר. אפשר לחפש אמנים ולעדכן כרטיסים.'));
 let promptInstall=null;
 const installButton=$('install');
 const installHelp=$('installHelp');
