@@ -25,4 +25,6 @@ test('the installed app can serve its imported artist code without a connection'
   listeners.fetch({request:{url:'https://music-atlas.vercel.app/artist-data.mjs',method:'GET'},respondWith:promise=>response=promise});
   assert.equal((await response).status,200);
   assert.equal(await (await response).text(),'/artist-data.mjs');
+  listeners.fetch({request:{url:'https://music-atlas.vercel.app/biography.mjs',method:'GET'},respondWith:promise=>response=promise});
+  assert.equal(await (await response).text(),'/biography.mjs');
 });
