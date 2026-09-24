@@ -3,6 +3,12 @@ import assert from 'node:assert/strict';
 import * as artistData from './artist-data.mjs';
 const {artistTypes, matchesFilter, namePartRole, readSavedArtists, saveArtist, findSavedArtists}=artistData;
 
+test('reads a valid official YouTube channel ID from Wikidata',()=>{
+  const claim=id=>({mainsnak:{datavalue:{value:id}}});
+  assert.equal(artistData.youtubeChannel({claims:{P2397:[claim('UC3cLa9M1i6yyidHTt3n0bCg')]}}),'UC3cLa9M1i6yyidHTt3n0bCg');
+  assert.equal(artistData.youtubeChannel({claims:{P2397:[claim('invalid')]}}),'');
+});
+
 const claim = id => ({mainsnak:{datavalue:{value:{id}}}});
 const entity = (id, instances, occupations=[], description='') => ({
   id,

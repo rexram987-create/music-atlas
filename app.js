@@ -1,4 +1,4 @@
-import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,missingDisplayedNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
+import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,missingDisplayedNameParts,readSavedArtists,saveArtist,findSavedArtists,youtubeChannel} from './artist-data.mjs';
 import {hebrewWordSense,biographyOriginExcerpt} from './name-gloss.mjs';
 import {biographyExcerpt} from './biography.mjs';
 import {songCategories,selectSongCategory,songExamples} from './works.mjs';
@@ -17,7 +17,7 @@ function wikidataSearch(q,lang,signal){return json('https://www.wikidata.org/w/a
 async function wikiSummary(title,lang,signal){if(!title)return null;try{return await json('https://'+lang+'.wikipedia.org/api/rest_v1/page/summary/'+encodeURIComponent(title.replaceAll(' ','_')),signal)}catch{return null}}
 async function entities(ids,signal){if(!ids.length)return {};const data=await json('https://www.wikidata.org/w/api.php?'+new URLSearchParams({action:'wbgetentities',ids:ids.join('|'),props:'labels|descriptions|sitelinks|claims',languages:'he|en|fr|ar',format:'json',origin:'*'}),signal);return data.entities||{}}
 function wikidataDate(entity,key){const time=entity?.claims?.[key]?.[0]?.mainsnak?.datavalue?.value?.time;if(!time)return null;const n=Number(time.match(/^[+-](\d+)/)?.[1]);if(!Number.isFinite(n))return null;return (time[0]==='-'?'−':'')+n}
-function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimNames(entity,'P1477'),stageNames:claimNames(entity,'P742'),nicknames:claimNames(entity,'P1449'),nativeNames:claimNames(entity,'P1559'),nativeNameLanguages:nativeNameLanguages(entity),nameIds:nameClaimIds(entity)}}
+function itemFromEntity(entity,fallback){return {id:entity.id,title:entity.labels?.he?.value||entity.labels?.en?.value||fallback||entity.id,description:entity.descriptions?.he?.value||entity.descriptions?.en?.value||'',englishTitle:entity.labels?.en?.value||'',frenchTitle:entity.labels?.fr?.value||'',arabicTitle:entity.labels?.ar?.value||'',types:artistTypes(entity),wikiTitle:entity.sitelinks?.hewiki?.title||entity.sitelinks?.enwiki?.title,lang:entity.sitelinks?.hewiki?'he':'en',born:wikidataDate(entity,'P569'),died:wikidataDate(entity,'P570'),inception:wikidataDate(entity,'P571'),dissolved:wikidataDate(entity,'P576'),birthNames:claimNames(entity,'P1477'),stageNames:claimNames(entity,'P742'),nicknames:claimNames(entity,'P1449'),nativeNames:claimNames(entity,'P1559'),nativeNameLanguages:nativeNameLanguages(entity),nameIds:nameClaimIds(entity),youtubeChannelId:youtubeChannel(entity)}}
 
 // Verified band-name stories are kept separate from Wikidata facts; no meaning is guessed.
 const nameStories={
@@ -346,6 +346,29 @@ function biographySection(item){
   }).catch(()=>{if(section.isConnected)paragraph.textContent=initial||'תקציר ביוגרפי אינו זמין כרגע.'});
   return section;
 }
+function youtubeSection(item){
+  const section=el('section','nameSection');
+  section.append(el('h3','','סרטוני שירים נצפים ביוטיוב'));
+  const content=el('div');section.append(content);
+  if(!navigator.onLine){content.append(el('p','muted','נתוני צפיות עדכניים דורשים חיבור לאינטרנט.'));return section}
+  content.append(el('p','muted','מחפש סרטוני שירים ביוטיוב…'));
+  const params=new URLSearchParams({artist:item.englishTitle||item.title,localName:item.title});
+  if(item.youtubeChannelId)params.set('channelId',item.youtubeChannelId);
+  json('/api/youtube-top?'+params).then(data=>{
+    if(!section.isConnected)return;
+    content.replaceChildren();
+    if(!data.songs?.length){content.append(el('p','muted','לא נמצאו די סרטוני שירים מתאימים לאמן זה.'));return}
+    content.append(el('p','muted','עד חמישה סרטונים מתוך 50 תוצאות חיפוש ביוטיוב, לפי מספר צפיות בסרטון בודד. זה אינו דירוג כולל של כל הביצועים או ההעלאות של כל שיר. נבדק ב־'+new Date(data.checkedAt).toLocaleDateString('he-IL')+'.'));
+    const list=el('ol','songList');
+    for(const song of data.songs){
+      const row=el('li');const link=el('a','sub',song.title+' ↗');
+      link.href=song.url;link.target='_blank';link.rel='noopener noreferrer';
+      row.append(link,el('span','muted',new Intl.NumberFormat('he-IL').format(song.views)+' צפיות · '+song.channel));list.append(row);
+    }
+    content.append(list);
+  }).catch(()=>{if(section.isConnected)content.replaceChildren(el('p','muted','נתוני הצפיות ביוטיוב אינם זמינים כרגע. אפשר להשתמש בקישורי החיפוש של השירים המתועדים למטה.'))});
+  return section;
+}
 function songsSection(item){
   const categories=songCategories(item);
   if(!categories.length)return null;
@@ -472,7 +495,7 @@ async function show(item){
   if(item.born)info.append(el('div','fact','שנות חיים: '+item.born+(item.died?'–'+item.died:'–')));
   else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));
   if(item.description)info.append(el('p','muted',item.description));
-  top.append(info);wrap.append(top);wrap.append(biographySection(item));const songs=songsSection(item);if(songs)wrap.append(songs);
+  top.append(info);wrap.append(top);wrap.append(biographySection(item),youtubeSection(item));const songs=songsSection(item);if(songs)wrap.append(songs);
   const foot=el('div','profileFoot');
   const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
   for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}

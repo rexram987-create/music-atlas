@@ -52,6 +52,11 @@ export function nativeNameLanguages(entity){
     .map(claim=>claim.mainsnak?.datavalue?.value?.language).filter(Boolean))];
 }
 
+export function youtubeChannel(entity){
+  const id=entity?.claims?.P2397?.[0]?.mainsnak?.datavalue?.value;
+  return typeof id==='string'&&/^UC[\w-]{22}$/.test(id)?id:'';
+}
+
 export function artistTypes(entity){
   const instances=claimIds(entity,'P31');
   if(instances.some(id=>groupKinds.has(id)))return ['band'];
