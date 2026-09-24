@@ -1,6 +1,7 @@
 import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,missingDisplayedNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 import {hebrewWordSense,biographyOriginExcerpt} from './name-gloss.mjs';
 import {biographyExcerpt} from './biography.mjs';
+import {songCategories,selectSongCategory,songExamples} from './works.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -345,6 +346,50 @@ function biographySection(item){
   }).catch(()=>{if(section.isConnected)paragraph.textContent=initial||'תקציר ביוגרפי אינו זמין כרגע.'});
   return section;
 }
+function songsSection(item){
+  const categories=songCategories(item);
+  if(!categories.length)return null;
+  const section=el('section','nameSection');
+  section.append(el('h3','','שירים ויצירות מתועדים'));
+  const content=el('div');section.append(content);
+  const render=selection=>{
+    content.replaceChildren();
+    content.append(el('p','muted',selection.category.role+' · עד חמש דוגמאות לפי סדר א״ב מתוך ויקיפדיה. הקישורים ליוטיוב פותחים חיפוש, ולא סרטון שנבדק.'));
+    const list=el('ul','songList');
+    for(const song of selection.songs){
+      const row=el('li');row.append(el('strong','',song.title));
+      for(const [label,url] of [['ערך בוויקיפדיה ↗',song.source],['חיפוש ביוטיוב ↗',song.youtube]]){
+        const link=el('a','sub',label);link.href=url;link.target='_blank';link.rel='noopener noreferrer';row.append(link);
+      }
+      list.append(row);
+    }
+    content.append(list);
+    const source=el('a','small','רשימת המקור: '+selection.category.title+' ↗');
+    source.href='https://'+selection.category.lang+'.wikipedia.org/wiki/'+encodeURIComponent(selection.category.title);
+    source.target='_blank';source.rel='noopener noreferrer';content.append(source);
+  };
+  if(item.songSelection?.songs?.length)render(item.songSelection);
+  else content.append(el('p','muted',navigator.onLine?'מחפש שירים מתועדים בוויקיפדיה…':'אין רשימת שירים שמורה במכשיר עבור אמן זה.'));
+  if(!navigator.onLine)return section;
+  (async()=>{
+    for(const lang of [...new Set(categories.map(category=>category.lang))]){
+      const choices=categories.filter(category=>category.lang===lang);
+      try{
+        const metadata=await json('https://'+lang+'.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'categoryinfo',titles:choices.map(choice=>choice.title).join('|'),format:'json',origin:'*'}));
+        const category=selectSongCategory(metadata,choices);
+        if(!category)continue;
+        const data=await json('https://'+lang+'.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',list:'categorymembers',cmtitle:category.title,cmnamespace:'0',cmlimit:'30',format:'json',origin:'*'}));
+        const artist=lang==='en'?item.englishTitle||item.title:item.title;
+        const songs=songExamples(data.query?.categorymembers,artist,lang);
+        if(!songs.length)continue;
+        if(!section.isConnected)return;
+        const selection={category,songs};render(selection);item.songSelection=selection;saveArtist(localStorage,item);return;
+      }catch(e){console.warn('Song category unavailable',lang,e)}
+    }
+    if(section.isConnected&&!item.songSelection?.songs?.length)content.replaceChildren(el('p','muted','לא נמצאה לאמן זה קטגוריית שירים עם ערכים זמינים בוויקיפדיה.'));
+  })();
+  return section;
+}
 function visible(){return state.items.filter(item=>matchesFilter(item,state.filter))}
 function paint(){
   const results=$('results');results.replaceChildren();$('detail').classList.add('hidden');
@@ -427,7 +472,7 @@ async function show(item){
   if(item.born)info.append(el('div','fact','שנות חיים: '+item.born+(item.died?'–'+item.died:'–')));
   else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));
   if(item.description)info.append(el('p','muted',item.description));
-  top.append(info);wrap.append(top);wrap.append(biographySection(item));
+  top.append(info);wrap.append(top);wrap.append(biographySection(item));const songs=songsSection(item);if(songs)wrap.append(songs);
   const foot=el('div','profileFoot');
   const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
   for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}

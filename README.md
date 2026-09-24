@@ -1,6 +1,6 @@
 # Music Atlas — האטלס המוזיקלי
 
-Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, representative images, and a short biographical excerpt of up to five complete sentences drawn from the artist's Wikipedia article. When the article introduction is too short, a relevant first biography paragraph can complete it. If the article has less information, the card shows only available sentences; it never fabricates missing details. The card links directly to the source and stores the excerpt for later offline reading.
+Hebrew RTL, mobile-friendly PWA for exploring singers, bands, and composers through Wikidata and Wikipedia. It includes multilingual search, representative images, and a short biographical excerpt of up to five complete sentences drawn from the artist's Wikipedia article. When the article introduction is too short, a relevant first biography paragraph can complete it. If the article has less information, the card shows only available sentences; it never fabricates missing details. When Wikipedia has an artist-specific song category, the card also lists up to five linked song articles in alphabetical order with clearly labeled YouTube search links. These are documented examples, not a ranking or verified video links.
 
 ## Deployment
 
@@ -8,11 +8,11 @@ Import the GitHub repository into Vercel as an **Other** framework, with the rep
 
 ## APIs
 
-Browser requests use the public Wikidata Action API, Wikipedia REST page summaries, and the Wikipedia Action API for plain-text article extracts when a card is opened. Search results are limited to people with musical occupations and musical groups. A singer who is also a composer appears in both filters. Hebrew Wikipedia is preferred when available; otherwise the article's language is shown. Name explanations and etymology are no longer rendered on artist cards.
+Browser requests use the public Wikidata Action API, Wikipedia REST page summaries, and the Wikipedia Action API for plain-text article extracts and artist-specific song category pages when a card is opened. Search results are limited to people with musical occupations and musical groups. A singer who is also a composer appears in both filters. Hebrew Wikipedia is preferred when available; English category titles are checked if the Hebrew song category is missing. Name explanations and etymology are no longer rendered on artist cards.
 
 ## Offline use
 
-The service worker stores the app shell for offline launch. Opening a profile saves up to 20 recently viewed artist cards in the device's local storage, including the biographical excerpt once it is loaded. On a later offline visit, those cards can be opened and searched by their stored names; they are marked as saved information that may have changed. New artists and images not already available to the browser need an internet connection. Browser storage can be cleared by the user or the operating system.
+The service worker stores the app shell for offline launch. Opening a profile saves up to 20 recently viewed artist cards in the device's local storage, including the biographical excerpt and song examples once they are loaded. On a later offline visit, those cards can be opened and searched by their stored names; they are marked as saved information that may have changed. New artists and images not already available to the browser need an internet connection. Browser storage can be cleared by the user or the operating system.
 
 ## Checks
 
@@ -20,6 +20,5 @@ Run `node --test` to check artist filtering, biography excerpts, saved cards, an
 
 ## Future phases
 
-1. Add five notable songs or compositions with YouTube links.
-2. Offline-first local playlists with export/import.
-3. Secure Google OAuth and YouTube Data API playlist creation, editing, and additions.
+1. Offline-first local playlists with export/import.
+2. Secure Google OAuth and YouTube Data API playlist creation, editing, and additions.
