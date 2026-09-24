@@ -1,5 +1,6 @@
 import {artistTypes,matchesFilter,namePartRole,nameDictionaryLanguage,claimNames,nameClaimIds,nativeNameLanguages,matchNameParts,missingDisplayedNameParts,readSavedArtists,saveArtist,findSavedArtists} from './artist-data.mjs';
 import {hebrewWordSense,biographyOriginExcerpt} from './name-gloss.mjs';
+import {biographyExcerpt} from './biography.mjs';
 
 const $=id=>document.getElementById(id);
 const state={filter:'all',items:[],controller:null,lastSearch:'',generation:0};
@@ -323,6 +324,27 @@ function nameSection(item){
   if(item.birthNames?.length||item.stageNames?.length||item.nicknames?.length||nativeNames.length){const a=el('a','small','מקור לשמות המתועדים: Wikidata ↗');a.href='https://www.wikidata.org/wiki/'+encodeURIComponent(item.id);a.target='_blank';a.rel='noopener noreferrer';section.append(a)}
   return section
 }
+function biographySection(item){
+  const section=el('section','nameSection');
+  section.append(el('h3','','תקציר ביוגרפי'));
+  const initial=biographyExcerpt(item.biography||'',item.summary||'',item.title,item.lang);
+  const paragraph=el('p','bio',initial||'טוען תקציר ביוגרפי…');section.append(paragraph);
+  const link=el('a','sub','מקור: ויקיפדיה · תוכן ברישיון CC BY-SA ↗');
+  link.href=item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title);
+  link.target='_blank';link.rel='noopener noreferrer';section.append(link);
+  if(!navigator.onLine||!item.wikiTitle){if(!initial)paragraph.textContent='תקציר ביוגרפי אינו זמין כרגע.';return section}
+  const url='https://'+item.lang+'.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',prop:'extracts',explaintext:'1',titles:item.wikiTitle,format:'json',origin:'*'});
+  json(url).then(data=>{
+    const page=Object.values(data.query?.pages||{})[0];
+    const biography=biographyExcerpt(page?.extract,item.summary||'',item.title,item.lang);
+    if(!section.isConnected)return;
+    if(!biography){paragraph.textContent=initial||'תקציר ביוגרפי אינו זמין כרגע.';return}
+    paragraph.textContent=biography;
+    item.biography=biography;
+    saveArtist(localStorage,item);
+  }).catch(()=>{if(section.isConnected)paragraph.textContent=initial||'תקציר ביוגרפי אינו זמין כרגע.'});
+  return section;
+}
 function visible(){return state.items.filter(item=>matchesFilter(item,state.filter))}
 function paint(){
   const results=$('results');results.replaceChildren();$('detail').classList.add('hidden');
@@ -405,19 +427,7 @@ async function show(item){
   if(item.born)info.append(el('div','fact','שנות חיים: '+item.born+(item.died?'–'+item.died:'–')));
   else if(item.inception)info.append(el('div','fact','שנות פעילות/ייסוד: '+item.inception+(item.dissolved?'–'+item.dissolved:'')));
   if(item.description)info.append(el('p','muted',item.description));
-  info.append(el('p','bio',item.summary||'תקציר ויקיפדיה אינו זמין. ניתן לעיין במקור כשיש חיבור לאינטרנט.'));
-  top.append(info);wrap.append(top);const names=nameSection(item);if(names)wrap.append(names);
-  const meanings=nameMeaningsSection(item);if(meanings)wrap.append(meanings);
-  if(item.savedAt&&!navigator.onLine)wrap.append(el('p','nameSection muted','בדיקת מילוני שמות דורשת חיבור לאינטרנט.'));
-  else if(!meanings){
-    const original=originalLanguageSection(item);
-    if(original)wrap.append(original);
-    else if(nameDictionaryLanguage(item)==='en'||nameDictionaryLanguage(item)==='he'){
-      const linked=structuredNameSection(item);
-      if(linked)wrap.append(linked);
-      else if(nameDictionaryLanguage(item)==='en')wrap.append(liveEtymologySection(item));
-    }
-  }
+  top.append(info);wrap.append(top);wrap.append(biographySection(item));
   const foot=el('div','profileFoot');
   const links=[['ויקיפדיה',item.page||'https://'+item.lang+'.wikipedia.org/wiki/'+encodeURIComponent(item.wikiTitle||item.title)],['Wikidata','https://www.wikidata.org/wiki/'+item.id]];
   for(const [label,url] of links){const a=el('a','sub',label+' ↗');a.href=url;a.target='_blank';a.rel='noopener noreferrer';foot.append(a)}
