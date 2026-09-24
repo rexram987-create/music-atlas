@@ -26,7 +26,7 @@ export function selectSongCategory(response,categories){
   return categories.find(category=>pages.some(page=>page.title===category.title&&page.missing===undefined&&page.categoryinfo?.pages>0))||null;
 }
 
-export function songExamples(members,artist,lang='he'){
+export function songExamples(members,artist,lang='he',role='שירים בביצוע האמן'){
   const seen=new Set();
   const songs=[];
   for(const member of members||[]){
@@ -34,7 +34,9 @@ export function songExamples(members,artist,lang='he'){
     const title=member.title.replace(/\s*\(שיר(?: של [^)]+)?\)$/u,'').trim();
     if(!title||seen.has(title))continue;
     seen.add(title);
-    songs.push({title,source:'https://'+lang+'.wikipedia.org/wiki/'+encodeURIComponent(member.title),youtube:'https://www.youtube.com/results?search_query='+encodeURIComponent(artist+' '+title)});
+    const performer=/\(שיר של ([^)]+)\)$/u.exec(member.title)?.[1];
+    const query=/שכתב|שהלחין|written|Compositions/u.test(role)?title+(performer?' '+performer:''):artist+' '+title;
+    songs.push({title,source:'https://'+lang+'.wikipedia.org/wiki/'+encodeURIComponent(member.title),youtube:'https://www.youtube.com/results?search_query='+encodeURIComponent(query)});
     if(songs.length===5)break;
   }
   return songs;

@@ -27,4 +27,7 @@ test('shows five unique article titles with article and YouTube search links',()
   assert.equal(songs[1].source,'https://he.wikipedia.org/wiki/'+encodeURIComponent('יורם (שיר)'));
   assert.equal(songs[1].youtube,'https://www.youtube.com/results?search_query='+encodeURIComponent('יהודה פוליקר יורם'));
   assert.equal(songExamples([{ns:0,title:'Beat It'}],'Michael Jackson','en')[0].source,'https://en.wikipedia.org/wiki/Beat%20It');
+  const written=songExamples([{ns:0,title:'יש בי אהבה (שיר של אריק איינשטיין)'}],'ארקדי דוכין','he','שירים שכתב האמן');
+  assert.equal(written[0].youtube,'https://www.youtube.com/results?search_query='+encodeURIComponent('יש בי אהבה אריק איינשטיין'));
+  assert.equal(songExamples([{ns:0,title:'היא לא דומה'}],'ארקדי דוכין','he','שירים שכתב האמן')[0].youtube,'https://www.youtube.com/results?search_query='+encodeURIComponent('היא לא דומה'));
 });

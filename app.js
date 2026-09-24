@@ -380,7 +380,7 @@ function songsSection(item){
         if(!category)continue;
         const data=await json('https://'+lang+'.wikipedia.org/w/api.php?'+new URLSearchParams({action:'query',list:'categorymembers',cmtitle:category.title,cmnamespace:'0',cmlimit:'30',format:'json',origin:'*'}));
         const artist=lang==='en'?item.englishTitle||item.title:item.title;
-        const songs=songExamples(data.query?.categorymembers,artist,lang);
+        const songs=songExamples(data.query?.categorymembers,artist,lang,category.role);
         if(!songs.length)continue;
         if(!section.isConnected)return;
         const selection={category,songs};render(selection);item.songSelection=selection;saveArtist(localStorage,item);return;
